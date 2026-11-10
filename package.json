@@ -33,5 +33,10 @@
   "peerDependencies": {
     "circuit-json": "*",
     "typescript": ">=5"
+  },
+  "dependencies": {
+    "circuit-json-to-bom-csv": "0.0.26",
+    "circuit-json-to-gerber": "0.0.122",
+    "circuit-json-to-pnp-csv": "0.0.20"
   }
 }

@@ -140,6 +140,46 @@ const parseCsv = (text: string): Record<string, string>[] => {
   )
 }
 
+const SI_PREFIX: Record<string, number> = {
+  p: 1e-12,
+  n: 1e-9,
+  u: 1e-6,
+  "\u00b5": 1e-6,
+  m: 1e-3,
+  "": 1,
+  k: 1e3,
+  K: 1e3,
+  M: 1e6,
+}
+
+/**
+ * For a BOM row with no part number, describe a jlcsearch query from its
+ * value and footprint ("10k" + "res0402", "100n" + "cap0603").
+ */
+const getValueLookup = (
+  row: Record<string, string>,
+): BomLine["valueLookup"] => {
+  const footprint = (row.Footprint ?? "").match(/^(res|cap)(\d{4})/i)
+  const value = (row.Value || row.Comment || "").match(
+    /^([\d.]+)\s*([pnu\u00b5mkKM]?)/,
+  )
+  if (!footprint || !value) return undefined
+  const amount = Number(value[1]) * SI_PREFIX[value[2] ?? ""]!
+  if (!Number.isFinite(amount)) return undefined
+  return footprint[1]!.toLowerCase() === "res"
+    ? {
+        category: "resistors",
+        params: { resistance: String(amount), package: footprint[2]! },
+      }
+    : {
+        category: "capacitors",
+        params: {
+          capacitance: amount.toExponential(),
+          package: footprint[2]!,
+        },
+      }
+}
+
 /** Plated holes this small are vias; component leads need more. */
 const MAX_VIA_HOLE_MM = 0.45
 
@@ -241,6 +281,7 @@ export const getQuoteInputsFromFabricationFiles = (
         requestedJlcPartNumber: /^C\d+$/i.test(partNumber)
           ? partNumber
           : undefined,
+        valueLookup: getValueLookup(row),
         smtJointsPerPart: 0,
         throughHoleJointsPerPart: 0,
       })

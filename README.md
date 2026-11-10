@@ -44,24 +44,40 @@ bun scripts/quote.ts board.circuit.json --qty 5 --assembled 2 --assembly economi
 
 ## How it works
 
-1. `extractBoardFeatures` reads size, layers, the smallest via, holes and
-   trace widths from the Circuit JSON.
-2. `getBomLines` groups placed components and counts their solder joints.
-3. `lookupJlcParts` resolves each line on
-   [jlcsearch](https://jlcsearch.tscircuit.com): by JLC part number, then
-   manufacturer part number, then value and package (basic parts first).
+Circuit JSON is quoted the way JLCPCB quotes an order: from fabrication files.
+
+1. `convertCircuitJsonToFabricationFiles` generates Gerbers, drill files,
+   `bom.csv` and `pick_and_place.csv` with the same converters and options as
+   the tscircuit.com fabrication export and `tsci export -f gerbers`.
+2. `getQuoteInputsFromFabricationFiles` reads size, layers, vias, holes,
+   trace widths, paste openings and the BOM back out of those files.
+3. `lookupJlcParts` prices each BOM line from JLCPCB's parts library
+   (quantity price breaks, billed spares, preferred flag, stock), using
+   [jlcsearch](https://jlcsearch.tscircuit.com) to find parts that have no
+   part number and as a fallback.
 4. `estimateJlcpcbQuote` prices everything from `lib/jlcpcb-price-table.ts`.
+
+Board thickness and material are order-form choices the files do not carry;
+they are read from the `pcb_board` element.
+
+An existing fabrication export can be quoted directly:
+
+```sh
+bun scripts/quote-fabrication-files.ts unzipped-export/ --qty 5 --assembled 5
+```
 
 Each line item carries a confidence:
 
 - `published`: taken from JLCPCB's help pages.
+- `quoted`: read off a live JLCPCB quote page.
 - `calibrated`: fitted to tscircuit's own shipped orders.
 - `heuristic`: an approximation with a wide low/high range. Bare-PCB prices
   for boards over 100x100mm, more than 5 pieces, or 6+ layers are all
   heuristic today.
 
-`tests/real-orders-replay.test.ts` replays two real orders. It rebuilds their
-BOM from the invoices, so it checks the fee rules, not part matching.
+`tests/real-orders-replay.test.ts` replays two real orders and one live quote.
+It rebuilds their BOM from the invoices, so it checks the fee rules, not part
+matching.
 
 ## Development
 
