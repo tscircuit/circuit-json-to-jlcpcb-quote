@@ -11,7 +11,6 @@ export type AssemblyType = "none" | "economic" | "standard"
 export type SurfaceFinish = "hasl_leaded" | "hasl_lead_free" | "enig"
 export type BoardMaterial = "fr4" | "flex"
 export type BoardSide = "top" | "bottom"
-export type PartSource = "jlcpcb" | "jlcsearch"
 export type LayerCount = number
 
 /**
@@ -62,12 +61,6 @@ export interface JlcpcbQuoteOptions {
    * and lists them in `excludedBomLines`.
    */
   unresolvedParts?: "error" | "exclude"
-  /**
-   * "jlcpcb" (default) prices parts from JLCPCB's parts library: quantity
-   * price breaks and billed spares. "jlcsearch" uses jlcsearch's single-piece
-   * price and estimates the spares.
-   */
-  partSource?: PartSource
   jlcsearchBaseUrl?: string
   fetch?: FetchLike
 }
@@ -118,14 +111,17 @@ export interface JlcPart {
   /** Price for one piece */
   unitPrice: number
   stock: number | null
-  /** Quantity price breaks, ascending. Only from JLCPCB's parts library. */
+  /**
+   * Quantity price breaks, ascending. Empty when the part source does not
+   * report them; jlcsearch does not today.
+   */
   priceTiers: { fromQuantity: number; unitPrice: number }[]
   /**
-   * What JLCPCB bills for extended parts on top of the quantity used.
-   * Null when the source (jlcsearch) does not say.
+   * What JLCPCB bills for extended parts on top of the quantity used. Null
+   * when the part source does not report it (jlcsearch does not today); the
+   * spares are then estimated.
    */
   billing: { spareQuantity: number; minimumQuantity: number } | null
-  source: PartSource
 }
 
 export interface PricedBomLine extends BomLine {

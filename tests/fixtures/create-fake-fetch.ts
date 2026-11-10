@@ -1,7 +1,4 @@
 import type { FetchLike, LcscPartNumber } from "lib/index"
-import { z } from "zod"
-
-const jlcpcbRequest = z.object({ keyword: z.string() })
 
 /** Path and query, e.g. "/resistors/list.json?resistance=10000&package=0402" */
 type JlcsearchListUrl = string
@@ -13,29 +10,26 @@ const jsonResponse = (body: unknown, status = 200) => ({
 })
 
 /**
- * A fetch that answers like JLCPCB's parts library and jlcsearch, from
- * in-memory catalogs. Anything not in a catalog is "not found".
+ * A fetch that answers like jlcsearch, from in-memory catalogs. Anything not
+ * in a catalog is "not found".
  */
 export const createFakeFetch = (catalog: {
-  /** JLCPCB parts-library records, without componentCode */
-  jlcpcbComponents?: Partial<Record<LcscPartNumber, object>>
-  /** jlcsearch rows keyed by "/resistors/list.json?resistance=..." path+query */
+  /** jlcsearch /api/search rows, without the lcsc number */
+  components?: Partial<Record<LcscPartNumber, object>>
+  /** jlcsearch category rows keyed by path and query */
   jlcsearchLists?: Partial<Record<JlcsearchListUrl, object[]>>
   /** EasyEDA "PAD~..." shapes per part */
   footprintShapes?: Partial<Record<LcscPartNumber, string[]>>
 }): FetchLike => {
-  return async (url, init) => {
-    const { hostname, pathname, search } = new URL(url)
-    if (hostname === "jlcpcb.com") {
-      const { keyword } = jlcpcbRequest.parse(JSON.parse(init?.body ?? "{}"))
-      const component = catalog.jlcpcbComponents?.[keyword]
+  return async (url) => {
+    const { pathname, search, searchParams } = new URL(url)
+    if (pathname === "/api/search") {
+      const lcsc = searchParams.get("q") ?? ""
+      const component = catalog.components?.[lcsc]
       return jsonResponse({
-        code: 200,
-        data: {
-          componentPageInfo: {
-            list: component ? [{ componentCode: keyword, ...component }] : [],
-          },
-        },
+        components: component
+          ? [{ lcsc: Number(lcsc.slice(1)), ...component }]
+          : [],
       })
     }
     if (pathname.startsWith("/api/easyeda_components/")) {

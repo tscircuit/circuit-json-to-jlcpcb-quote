@@ -11,25 +11,22 @@ import {
 import { loadRp2040Board } from "./fixtures/load-rp2040-board"
 
 const fakeFetch = createFakeFetch({
-  jlcpcbComponents: {
+  components: {
     C2040: {
-      componentModelEn: "RP2040",
-      componentSpecificationEn: "LQFN-56(7x7)",
-      componentLibraryType: "expand",
-      preferredComponentFlag: false,
-      stockCount: 5000,
-      lossNumber: 0,
-      leastPatchNumber: 0,
-      componentPrices: [{ startNumber: 1, endNumber: -1, productPrice: 1 }],
+      mfr: "RP2040",
+      package: "LQFN-56(7x7)",
+      is_basic: false,
+      is_preferred: false,
+      stock: 5000,
+      price: 1,
     },
     C25744: {
-      componentModelEn: "0402WGF1002TCE",
-      componentSpecificationEn: "0402",
-      componentLibraryType: "base",
-      stockCount: 100000,
-      lossNumber: 15,
-      leastPatchNumber: 20,
-      componentPrices: [{ startNumber: 1, endNumber: -1, productPrice: 0.001 }],
+      mfr: "0402WGF1002TCE",
+      package: "0402",
+      is_basic: true,
+      is_preferred: false,
+      stock: 100000,
+      price: 0.001,
     },
   },
   jlcsearchLists: {

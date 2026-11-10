@@ -11,9 +11,9 @@ import { parseApiResponse } from "./parse-api-response"
 const searchResponse = z.object({ components: z.array(jlcsearchComponent) })
 
 /**
- * Read one part from jlcsearch by part number. It carries a single-piece
- * price only, with no price breaks or billed spares. Returns null when
- * jlcsearch has no such part.
+ * Read one part from jlcsearch by part number: single-piece price, stock and
+ * whether it is a basic or preferred part. Returns null when jlcsearch has no
+ * such part.
  */
 export const fetchJlcsearchPart = async (
   lcsc: LcscPartNumber,

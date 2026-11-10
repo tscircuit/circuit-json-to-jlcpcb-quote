@@ -10,7 +10,6 @@ const lookup = (bom: BomLine[], fetch: FetchLike) =>
   lookupJlcParts(bom, {
     fetch,
     jlcsearchBaseUrl: "https://jlcsearch.test",
-    partSource: "jlcpcb",
   })
 
 const line: BomLine = {
@@ -20,26 +19,20 @@ const line: BomLine = {
   requestedJlcPartNumber: "C7",
 }
 
-const jlcpcbComponent = {
-  componentModelEn: "PART7",
-  componentSpecificationEn: "0603",
-  describe: "a part",
-  componentLibraryType: "expand",
-  preferredComponentFlag: true,
-  stockCount: 42,
-  lossNumber: 8,
-  leastPatchNumber: 20,
-  componentPrices: [
-    { startNumber: 30, endNumber: -1, productPrice: 0.3 },
-    { startNumber: 1, endNumber: 29, productPrice: 0.5 },
-  ],
+const jlcsearchComponent = {
+  mfr: "PART7",
+  package: "0603",
+  is_basic: false,
+  is_preferred: true,
+  stock: 42,
+  price: 0.5,
 }
 
-test("reads tiers, spares and flags from JLCPCB's parts library", async () => {
+test("reads price, stock and flags from jlcsearch and pads from the footprint", async () => {
   const result = await lookup(
     [line],
     createFakeFetch({
-      jlcpcbComponents: { C7: jlcpcbComponent },
+      components: { C7: jlcsearchComponent },
       footprintShapes: {
         C7: createFootprintShapes({ smt: 2, throughHole: 3 }),
       },
@@ -59,12 +52,8 @@ test("reads tiers, spares and flags from JLCPCB's parts library", async () => {
         isPreferred: true,
         unitPrice: 0.5,
         stock: 42,
-        priceTiers: [
-          { fromQuantity: 1, unitPrice: 0.5 },
-          { fromQuantity: 30, unitPrice: 0.3 },
-        ],
-        billing: { spareQuantity: 8, minimumQuantity: 20 },
-        source: "jlcpcb",
+        priceTiers: [],
+        billing: null,
       },
     },
   ])
@@ -79,9 +68,7 @@ test("reports parts that cannot be priced, with the reason", async () => {
       { designators: ["J1"], quantity: 1, comment: "pinrow4" },
       { ...line, designators: ["U2"], requestedJlcPartNumber: "C8" },
     ],
-    createFakeFetch({
-      jlcpcbComponents: { C7: jlcpcbComponent, C8: jlcpcbComponent },
-    }),
+    createFakeFetch({ components: { C7: jlcsearchComponent } }),
   )
   expect(result.pricedBom).toEqual([])
   expect(
@@ -92,7 +79,7 @@ test("reports parts that cannot be priced, with the reason", async () => {
   ).toEqual([
     ["U1", "C7 has no footprint, so its solder joints are unknown"],
     ["J1", "no JLCPCB part number"],
-    ["U2", "C8 has no footprint, so its solder joints are unknown"],
+    ["U2", "C8 is not on jlcsearch"],
   ])
 })
 
@@ -100,9 +87,9 @@ test("a malformed answer throws instead of being treated as not found", async ()
   const brokenFetch: FetchLike = async () => ({
     ok: true,
     status: 200,
-    json: async () => ({ code: 500, message: "nope" }),
+    json: async () => ({ error: "D1 query failed" }),
   })
   await expect(lookup([line], brokenFetch)).rejects.toThrow(
-    "Unexpected answer from JLCPCB's parts library for C7",
+    "Unexpected answer from jlcsearch for C7",
   )
 })

@@ -1,8 +1,7 @@
-import type { FetchLike, PartSource } from "../types"
+import type { FetchLike } from "../types"
 
 /** Shared by every part lookup */
 export interface LookupContext {
   fetch: FetchLike
   jlcsearchBaseUrl: string
-  partSource: PartSource
 }

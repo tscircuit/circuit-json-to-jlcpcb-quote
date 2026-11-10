@@ -5,8 +5,7 @@ import { createQuoteLineItem } from "./create-quote-line-item"
 /**
  * How many pieces JLCPCB bills. Basic parts are billed exactly as used.
  * Extended parts are billed with spares, up to a minimum quantity. When the
- * part source does not report those (jlcsearch), they are estimated from the
- * unit price.
+ * part source does not report those, they are estimated from the unit price.
  */
 export const getBilledQuantity = (part: JlcPart, usedQuantity: number) => {
   if (part.isBasic) return usedQuantity
@@ -48,7 +47,7 @@ export const estimatePartsCost = (order: {
     const unitPrice = getUnitPriceForQuantity(part, billedQuantity)
     partsCost += billedQuantity * unitPrice
     partsCostWithoutSpares += usedQuantity * unitPrice
-    if (part.source !== "jlcpcb") linesWithEstimatedBilling++
+    if (!part.isBasic && !part.billing) linesWithEstimatedBilling++
     if (part.stock !== null && part.stock < billedQuantity) {
       warnings.push(
         `${line.designators.join(",")}: ${part.lcsc} has ${part.stock} in stock at JLCPCB, ${billedQuantity} needed`,
@@ -75,7 +74,7 @@ export const estimatePartsCost = (order: {
               partsCostWithoutSpares * estimatedPartBilling.range.lowFraction,
             highCost: partsCost * estimatedPartBilling.range.highFraction,
             confidence: "calibrated",
-            note: `${linesWithEstimatedBilling} lines priced without JLCPCB price breaks and billed spares`,
+            note: `${linesWithEstimatedBilling} extended parts priced at the single-piece price with estimated spares`,
           }),
     ],
     warnings,

@@ -58,11 +58,10 @@ Circuit JSON is quoted the way JLCPCB quotes an order: from fabrication files.
    the tscircuit.com fabrication export and `tsci export -f gerbers`.
 2. `getQuoteInputsFromFabricationFiles` reads size, layers, vias, holes,
    trace widths, paste openings and the BOM back out of those files.
-3. `lookupJlcParts` prices each BOM line from JLCPCB's parts library
-   (quantity price breaks, billed spares, preferred flag, stock) and reads
-   each part's footprint from [jlcsearch](https://jlcsearch.tscircuit.com).
-   Resistors and capacitors with no part number are matched on jlcsearch by
-   rating and package.
+3. `lookupJlcParts` prices each BOM line from
+   [jlcsearch](https://jlcsearch.tscircuit.com): unit price, stock, whether
+   the part is basic or preferred, and its footprint's pads. Resistors and
+   capacitors with no part number are matched by rating and package.
 4. `estimateJlcpcbQuote` applies the prices and rules in
    `lib/jlcpcb-price-table.ts`. It is pure, so real orders are replayed
    against it in the tests.
@@ -74,8 +73,8 @@ they are read from the `pcb_board` element.
 
 A quote that silently leaves something out comes out low, so these throw:
 
-- a BOM line that cannot be priced (no part number, not in JLCPCB's library,
-  no footprint). Pass `unresolvedParts: "exclude"` to quote without those
+- a BOM line that cannot be priced (no part number, not on jlcsearch, no
+  footprint). Pass `unresolvedParts: "exclude"` to quote without those
   lines; they are then listed in `quote.excludedBomLines`.
 - a part lookup that fails or answers in an unexpected shape
 - a board with no price in the table: a layer count, rigid thickness,
@@ -83,12 +82,16 @@ A quote that silently leaves something out comes out low, so these throw:
 
 ## Part prices
 
-`partSource: "jlcpcb"` (the default) calls the endpoint behind JLCPCB's parts
-search page, the same one jlcsearch uses to verify stock. It is not a
-documented API, and browsers are blocked from it by CORS, so run the quote
-server-side. `partSource: "jlcsearch"` works anywhere but only knows
-single-piece prices; spares are then estimated and the parts line gets a
-range.
+All part details come from jlcsearch. It reports a single-piece price, so
+the parts line is an estimate with a range: JLCPCB's quantity price breaks are
+not applied, and the spares JLCPCB bills for extended parts are estimated from
+the unit price. On the one live quote checked, this puts the parts line about
+10% high ($180.87 against $164.76) and the whole quote about 4% high.
+
+The estimator already applies price breaks and billed spares when a part
+carries them (`JlcPart.priceTiers`, `JlcPart.billing`); with those the same
+quote's parts line matches JLCPCB to the cent. They only need to be exposed by
+jlcsearch.
 
 ## Confidence
 

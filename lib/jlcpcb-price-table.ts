@@ -162,8 +162,6 @@ export const assemblyPrices = {
     nitrogenReflow: 0.91,
     /** Economic PCBA is offered up to this many layers */
     maxLayers: 6,
-    /** jlcsearch flags fewer parts as preferred than JLCPCB exempts */
-    jlcsearchLoadingLowFraction: 0.9,
   },
   /** published */
   standard: {
@@ -207,7 +205,8 @@ export const assemblyPrices = {
 
 /**
  * Spares for extended parts when the part source does not report JLCPCB's
- * own spare and minimum quantities (jlcsearch). Fitted to the quoted BOM.
+ * own spare and minimum quantities, which jlcsearch does not today. Fitted
+ * to the quoted BOM.
  */
 export const estimatedPartBilling = {
   cheapUnitPriceBelow: 0.03,

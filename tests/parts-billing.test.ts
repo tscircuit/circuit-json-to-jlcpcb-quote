@@ -72,14 +72,10 @@ test("basic parts are billed exactly as used", () => {
   ).toBe(0.12)
 })
 
-test("jlcsearch-priced parts get estimated spares and a range", () => {
+test("parts without billed-spare details get estimated spares and a range", () => {
   const quote = quoteFiveBoards([
     createPricedBomLine({
-      part: createJlcPart({
-        unitPrice: 0.01,
-        billing: null,
-        source: "jlcsearch",
-      }),
+      part: createJlcPart({ unitPrice: 0.01, billing: null }),
     }),
   ])
   const components = quote.lineItems.find((item) => item.key === "components")

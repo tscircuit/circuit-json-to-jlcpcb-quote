@@ -26,7 +26,6 @@ const estimateEconomicFees = (order: AssemblyOrder): QuoteLineItem[] => {
       !line.part.isBasic && !line.part.isPreferred && !isHandSoldered(line),
   )
   const loadingCost = extendedLines.length * prices.feederLoadingPerExtendedPart
-  const isFromJlcpcb = order.bom.every((line) => line.part.source === "jlcpcb")
   const lineItems = [
     createQuoteLineItem({
       category: "assembly",
@@ -48,12 +47,6 @@ const estimateEconomicFees = (order: AssemblyOrder): QuoteLineItem[] => {
       label: `Extended parts loading (${extendedLines.length} of ${order.bom.length} unique parts)`,
       cost: loadingCost,
       confidence: "quoted",
-      ...(isFromJlcpcb
-        ? {}
-        : {
-            lowCost: loadingCost * prices.jlcsearchLoadingLowFraction,
-            note: "jlcsearch misses some parts JLCPCB exempts as preferred",
-          }),
     }),
   ]
   if (order.options.nitrogenReflow !== false) {

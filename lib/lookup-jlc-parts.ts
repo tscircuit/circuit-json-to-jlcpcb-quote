@@ -3,8 +3,8 @@ import { resolveBomLine } from "./parts/resolve-bom-line"
 import type { BomLine, JlcpcbQuote, PricedBomLine } from "./types"
 
 /**
- * Price every BOM line. Lines are looked up one at a time because jlcsearch
- * rejects bursts. The input lines are not modified.
+ * Price every BOM line from jlcsearch. Lines are looked up one at a time
+ * because jlcsearch rejects bursts. The input lines are not modified.
  */
 export const lookupJlcParts = async (
   bom: BomLine[],

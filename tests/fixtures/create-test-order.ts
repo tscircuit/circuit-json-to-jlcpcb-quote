@@ -28,7 +28,6 @@ export const createJlcPart = (overrides: Partial<JlcPart> = {}): JlcPart => ({
   stock: 100_000,
   priceTiers: [],
   billing: { spareQuantity: 0, minimumQuantity: 0 },
-  source: "jlcpcb",
   ...overrides,
 })
 

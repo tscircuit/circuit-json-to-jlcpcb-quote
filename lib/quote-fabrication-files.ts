@@ -73,7 +73,6 @@ export const quoteFabricationFiles = async (order: {
     fetch: options.fetch ?? globalFetch,
     jlcsearchBaseUrl:
       options.jlcsearchBaseUrl ?? orderDefaults.jlcsearchBaseUrl,
-    partSource: options.partSource ?? "jlcpcb",
   })
   if (
     lookup.unresolvedBomLines.length > 0 &&

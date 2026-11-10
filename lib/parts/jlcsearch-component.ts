@@ -29,8 +29,8 @@ export const convertJlcsearchComponentToJlcPart = (
     isPreferred: component.is_preferred === true,
     unitPrice,
     stock: component.stock ?? null,
+    // jlcsearch reports neither quantity price breaks nor billed spares.
     priceTiers: [],
     billing: null,
-    source: "jlcsearch",
   }
 }
