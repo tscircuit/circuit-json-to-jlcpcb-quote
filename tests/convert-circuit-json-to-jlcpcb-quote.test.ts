@@ -146,15 +146,18 @@ test("quotes a small assembled board end to end", async () => {
   )
   expect(cost).toEqual({
     pcb_base: 2,
+    confirm_production_file: 1.05,
     four_wire_kelvin_test: 54.18,
     deburring: 0.1,
-    setup: 8.18,
-    stencil: 1.53,
-    feeder_loading: 3.07, // RP2040 only; the resistor is basic
-    smt_placement: 0.2, // (2 * 2 + 57) joints * 2 boards * 0.0016
-    components: 2.01, // 2 * $1 + (4 used + 5 spare) * $0.001
+    setup: 8.24,
+    stencil: 1.55,
+    feeder_loading: 3.09, // RP2040 only; the resistor is basic
+    nitrogen_reflow: 0.91,
+    smt_placement: 0.21, // (2 * 2 + 57) joints * 2 boards * 0.0017
+    confirm_parts_placement: 0.45,
+    components: 2, // 2 * $1 + 4 basic resistors at $0.001, no spares
   })
-  expect(quote.total).toBe(71.27)
+  expect(quote.total).toBe(73.78)
   expect(quote.warnings.join("\n")).toContain("J1: no JLCPCB part found")
   expect(formatJlcpcbQuote(quote)).toContain("4-wire Kelvin test")
 })
@@ -168,5 +171,5 @@ test("bare-board quote skips part lookups", async () => {
     }) as unknown as typeof fetch,
   })
   expect(quote.assemblyTotal).toBe(0)
-  expect(quote.total).toBe(56.28)
+  expect(quote.total).toBe(57.33)
 })

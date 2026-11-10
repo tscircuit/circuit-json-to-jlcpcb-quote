@@ -4,6 +4,8 @@
  * - "published": JLCPCB help pages
  *   https://jlcpcb.com/help/article/pcb-assembly-price
  *   https://jlcpcb.com/help/article/In-what-cases-will-there-be-charged-extra
+ * - "quoted": read off a live JLCPCB quote page (dual-rp2350 board,
+ *   2026-11-10: 4 layers, 144.5x82mm, 5 pcs, 5 assembled, economic PCBA)
  * - "calibrated": fitted to tscircuit's own shipped orders (Y45, Y63) and
  *   supplement notices (Y34, Y42, Y43, Y45), see
  *   tscircuit/jlcpcb-manufacturing-specs datasets/jlcpcb
@@ -13,11 +15,15 @@
 export const JLCPCB_PRICE_TABLE_VERSION = "2026-11-10"
 
 export const assemblyPrices = {
+  /** quoted; the help page lists 8.18 / 1.53 / 3.07 / 0.0016, about 0.7% lower */
   economic: {
-    setup: 8.18,
-    stencil: 1.53,
+    setup: 8.24,
+    stencil: 1.55,
     /** per unique extended part; basic and preferred parts are free */
-    feederLoadingPerExtendedPart: 3.07,
+    feederLoadingPerExtendedPart: 3.09,
+    smtPerJoint: 0.0017,
+    /** "Yes (for Economic)" is the order form default */
+    nitrogenReflow: 0.91,
   },
   standard: {
     setupSingleSide: 25.56,
@@ -26,12 +32,13 @@ export const assemblyPrices = {
     stencilDoubleSide: 16.42,
     /** per unique part, basic and extended alike */
     feederLoadingPerPart: 1.53,
+    smtPerJoint: 0.0016,
     packagingBase: 0.5,
     packagingPerCm2: 0.00003,
   },
-  smtPerJoint: 0.0016,
-  throughHolePerJoint: 0.0164,
-  handSolderingLaborPerOrder: 3.58,
+  /** quoted */
+  throughHolePerJoint: 0.0165,
+  handSolderingLaborPerOrder: 3.61,
   confirmPartsPlacement: 0.45,
   /** [max pieces, price per piece] */
   xrayPerPieceTiers: [
@@ -70,16 +77,16 @@ export const fabricationPrices = {
   areaPricing: {
     1: { engineering: 8, perM2: 100 },
     2: { engineering: 8, perM2: 110 },
-    4: { engineering: 13.4, perM2: 105 },
+    /** quoted: $25 engineering + $7.30 board for 0.0592 m2 */
+    4: { engineering: 25, perM2: 123.2 },
     6: { engineering: 45, perM2: 250 },
     8: { engineering: 75, perM2: 400 },
   } as Record<number, { engineering: number; perM2: number }>,
   heuristicRangeFraction: 0.35,
-  /**
-   * calibrated on one order: Y63 (4 layer, 35x35mm, 5 pcs, lead-free HASL)
-   * cost 14.05 where the leaded special offer is 7.
-   */
-  leadFreeHaslSurcharge: { 1: 1, 2: 1, 4: 7.05 } as Record<number, number>,
+  /** quoted for 4 layers; 1-2 layers are heuristic */
+  leadFreeHaslSurcharge: { 1: 1, 2: 1, 4: 5.3 } as Record<number, number>,
+  /** quoted: "Confirm Production file: Yes" */
+  confirmProductionFile: 1.05,
   /** heuristic */
   enigSurcharge: { 1: 14.5, 2: 14.5, 4: 16 } as Record<number, number>,
 }

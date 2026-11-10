@@ -34,8 +34,8 @@ export const lookupJlcParts = async (params: {
   const get = async (path: string, key: string): Promise<SearchResult[]> => {
     const url = `${baseUrl}${path}`
     let lastError = ""
-    for (let attempt = 0; attempt < 4; attempt++) {
-      if (attempt > 0) await new Promise((r) => setTimeout(r, 1500 * attempt))
+    for (let attempt = 0; attempt < 7; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 2500 * attempt))
       try {
         const response = await fetchFn(url)
         const body: any = await response.json().catch(() => null)

@@ -42,7 +42,7 @@ const throughHoleParts = inputs.bom.filter((line) =>
 if (throughHoleParts.length > 0 && inputs.platedComponentHoleCount > 0) {
   inputs.jointsPerBoard.throughHole = inputs.platedComponentHoleCount
   inputs.warnings.push(
-    `Through-hole parts (${throughHoleParts.flatMap((line) => line.designators).join(", ")}) need hand soldering; all ${inputs.platedComponentHoleCount} plated component holes are counted as joints, which is an upper bound`,
+    `Through-hole parts (${throughHoleParts.flatMap((line) => line.designators).join(", ")}) are hand-soldered; all ${inputs.platedComponentHoleCount} plated component holes are counted as joints, which is an upper bound`,
   )
 }
 const quote = estimateJlcpcbQuote({

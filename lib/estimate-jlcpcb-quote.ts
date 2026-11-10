@@ -100,26 +100,45 @@ export const estimateJlcpcbQuote = (params: {
       "pcb_base",
       `${layers}-layer FR4, ${quantity} pcs, engineering fee + ${areaM2.toFixed(3)} m²`,
       pcbBase,
-      "heuristic",
-      {
-        low: pcbBase * (1 - range),
-        high: pcbBase * (1 + range),
-        note: "No real order of this size/quantity to calibrate against yet",
-      },
+      layers === 4 ? "quoted" : "heuristic",
+      layers === 4
+        ? {
+            low: pcbBase * 0.9,
+            high: pcbBase * 1.15,
+            note: "Fitted to one quote (144.5x82mm, 5 pcs)",
+          }
+        : {
+            low: pcbBase * (1 - range),
+            high: pcbBase * (1 + range),
+            note: "No real order of this size/quantity to calibrate against yet",
+          },
     )
   }
   if (surfaceFinish === "hasl_lead_free") {
     const surcharge = fabricationPrices.leadFreeHaslSurcharge[layers] ?? 0
-    add("pcb", "lead_free_hasl", "Lead-free HASL", surcharge, "calibrated", {
-      low: 0,
-      note: "Seen on one order (Y63) only",
-    })
+    add(
+      "pcb",
+      "lead_free_hasl",
+      "Lead-free HASL",
+      surcharge,
+      layers === 4 ? "quoted" : "heuristic",
+    )
   } else if (surfaceFinish === "enig") {
     const surcharge = fabricationPrices.enigSurcharge[layers] ?? 0
     add("pcb", "enig", "ENIG finish", surcharge, "heuristic", {
       low: surcharge * 0.6,
       high: surcharge * 1.6,
     })
+  }
+
+  if (options.confirmProductionFile !== false) {
+    add(
+      "pcb",
+      "confirm_production_file",
+      "Confirm production file",
+      fabricationPrices.confirmProductionFile,
+      "quoted",
+    )
   }
 
   // ---- Charges JLCPCB engineers add after review --------------------------
@@ -227,30 +246,39 @@ export const estimateJlcpcbQuote = (params: {
         sum(placed, (line) => line.quantity * line.throughHoleJointsPerPart))
 
     if (assembly === "economic") {
-      add(
-        "assembly",
-        "setup",
-        "Setup fee",
-        p.economic.setup * factor,
-        "published",
-      )
+      add("assembly", "setup", "Setup fee", p.economic.setup * factor, "quoted")
       add(
         "assembly",
         "stencil",
         "Stencil",
         p.economic.stencil * factor,
-        "published",
+        "quoted",
       )
       const extended = placed.filter(
         (line) => !line.part!.isBasic && !line.part!.isPreferred,
       )
+      const loading =
+        extended.length * p.economic.feederLoadingPerExtendedPart * factor
       add(
         "assembly",
         "feeder_loading",
         `Extended parts loading (${extended.length} of ${placed.length} unique parts)`,
-        extended.length * p.economic.feederLoadingPerExtendedPart * factor,
-        "published",
+        loading,
+        "quoted",
+        {
+          low: loading * 0.9,
+          note: "jlcsearch misses some parts JLCPCB exempts as preferred",
+        },
       )
+      if (options.nitrogenReflow !== false) {
+        add(
+          "assembly",
+          "nitrogen_reflow",
+          "Nitrogen reflow soldering",
+          p.economic.nitrogenReflow * factor,
+          "quoted",
+        )
+      }
     } else {
       add(
         "assembly",
@@ -309,8 +337,8 @@ export const estimateJlcpcbQuote = (params: {
       "assembly",
       "smt_placement",
       `SMT placement (${smtJoints} joints)`,
-      smtJoints * p.smtPerJoint * factor,
-      "published",
+      smtJoints * p[assembly].smtPerJoint * factor,
+      assembly === "economic" ? "quoted" : "published",
     )
     if (thtJoints > 0) {
       add(
@@ -319,10 +347,10 @@ export const estimateJlcpcbQuote = (params: {
         `Through-hole soldering (${thtJoints} joints)`,
         (p.handSolderingLaborPerOrder + thtJoints * p.throughHolePerJoint) *
           factor,
-        "published",
+        "quoted",
       )
     }
-    if (options.confirmPartsPlacement) {
+    if (options.confirmPartsPlacement !== false) {
       add(
         "assembly",
         "confirm_parts_placement",
@@ -332,14 +360,21 @@ export const estimateJlcpcbQuote = (params: {
       )
     }
 
-    // Parts: JLCPCB bills the quantity used plus spares for cheap parts.
+    // Parts: basic parts are billed exactly as used. Extended parts carry
+    // spares and a minimum of about 20 for the cheapest ones (fitted to the
+    // quoted BOM of the dual-rp2350 board).
     let partsCost = 0
     let partsWithoutSpares = 0
     for (const line of placed) {
+      const { unitPrice, isBasic } = line.part!
       const used = line.quantity * assembledQuantity
-      const spares = line.part!.unitPrice < 0.1 ? Math.max(5, used * 0.1) : 0
-      partsCost += (used + Math.ceil(spares)) * line.part!.unitPrice
-      partsWithoutSpares += used * line.part!.unitPrice
+      let billed = used
+      if (!isBasic) {
+        if (unitPrice < 0.03) billed = Math.max(20, used + 6)
+        else if (unitPrice < 0.2) billed = used + 4
+      }
+      partsCost += billed * unitPrice
+      partsWithoutSpares += used * unitPrice
     }
     add(
       "components",
@@ -348,9 +383,9 @@ export const estimateJlcpcbQuote = (params: {
       partsCost,
       "calibrated",
       {
-        low: partsWithoutSpares * 0.95,
-        high: partsCost * 1.15,
-        note: "jlcsearch prices; JLCPCB's live price and minimum quantities can differ",
+        low: partsWithoutSpares * 0.9,
+        high: partsCost * 1.1,
+        note: "jlcsearch prices; JLCPCB's live price can differ per part",
       },
     )
   }

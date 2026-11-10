@@ -2,7 +2,7 @@ import type { AnyCircuitElement } from "circuit-json"
 
 export type AssemblyType = "none" | "economic" | "standard"
 export type SurfaceFinish = "hasl_leaded" | "hasl_lead_free" | "enig"
-export type Confidence = "published" | "calibrated" | "heuristic"
+export type Confidence = "published" | "quoted" | "calibrated" | "heuristic"
 
 export interface JlcpcbQuoteOptions {
   /** Bare PCBs ordered. Default 5. */
@@ -15,8 +15,12 @@ export interface JlcpcbQuoteOptions {
   surfaceFinish?: SurfaceFinish
   /** Standard PCBA only. "auto" inspects BGA/LGA/QFN parts. Default "auto". */
   xrayInspection?: boolean | "auto"
-  /** Default false. */
+  /** Default true. */
   confirmPartsPlacement?: boolean
+  /** Default true. */
+  confirmProductionFile?: boolean
+  /** Economic PCBA only. Default true, as on the order form. */
+  nitrogenReflow?: boolean
   /** Multiplies published fees, for exchange-rate drift. Default 1. */
   priceAdjustmentFactor?: number
   /** Set false to skip jlcsearch lookups (parts priced at 0). */

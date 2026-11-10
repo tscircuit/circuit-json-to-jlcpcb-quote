@@ -111,7 +111,9 @@ const parseDrill = (text: string): DrillHit[] => {
       diameter = tools.get(String(Number(select[1]))) ?? 0
       continue
     }
-    const hit = line.match(/^(?:G85)?X(-?[\d.]+)Y(-?[\d.]+)/)
+    // "G85X..Y.." is the far end of a slot whose start is the previous hit.
+    if (line.startsWith("G85")) continue
+    const hit = line.match(/^X(-?[\d.]+)Y(-?[\d.]+)/)
     if (hit && diameter > 0) {
       hits.push({
         diameterMm: diameter,
