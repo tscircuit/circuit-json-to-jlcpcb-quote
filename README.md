@@ -42,6 +42,13 @@ From the command line:
 bun scripts/quote.ts board.circuit.json --qty 5 --assembled 2 --assembly economic
 ```
 
+An existing fabrication export can be quoted directly with
+`quoteFabricationFiles`, or:
+
+```sh
+bun scripts/quote-fabrication-files.ts unzipped-export/ --qty 5 --assembled 5
+```
+
 ## How it works
 
 Circuit JSON is quoted the way JLCPCB quotes an order: from fabrication files.
@@ -52,19 +59,38 @@ Circuit JSON is quoted the way JLCPCB quotes an order: from fabrication files.
 2. `getQuoteInputsFromFabricationFiles` reads size, layers, vias, holes,
    trace widths, paste openings and the BOM back out of those files.
 3. `lookupJlcParts` prices each BOM line from JLCPCB's parts library
-   (quantity price breaks, billed spares, preferred flag, stock), using
-   [jlcsearch](https://jlcsearch.tscircuit.com) to find parts that have no
-   part number and as a fallback.
-4. `estimateJlcpcbQuote` prices everything from `lib/jlcpcb-price-table.ts`.
+   (quantity price breaks, billed spares, preferred flag, stock) and reads
+   each part's footprint from [jlcsearch](https://jlcsearch.tscircuit.com).
+   Resistors and capacitors with no part number are matched on jlcsearch by
+   rating and package.
+4. `estimateJlcpcbQuote` applies the prices and rules in
+   `lib/jlcpcb-price-table.ts`. It is pure, so real orders are replayed
+   against it in the tests.
 
 Board thickness and material are order-form choices the files do not carry;
 they are read from the `pcb_board` element.
 
-An existing fabrication export can be quoted directly:
+## It refuses instead of guessing
 
-```sh
-bun scripts/quote-fabrication-files.ts unzipped-export/ --qty 5 --assembled 5
-```
+A quote that silently leaves something out comes out low, so these throw:
+
+- a BOM line that cannot be priced (no part number, not in JLCPCB's library,
+  no footprint). Pass `unresolvedParts: "exclude"` to quote without those
+  lines; they are then listed in `quote.excludedBomLines`.
+- a part lookup that fails or answers in an unexpected shape
+- a board with no price in the table: a layer count, rigid thickness,
+  material or surface finish that has not been priced
+
+## Part prices
+
+`partSource: "jlcpcb"` (the default) calls the endpoint behind JLCPCB's parts
+search page, the same one jlcsearch uses to verify stock. It is not a
+documented API, and browsers are blocked from it by CORS, so run the quote
+server-side. `partSource: "jlcsearch"` works anywhere but only knows
+single-piece prices; spares are then estimated and the parts line gets a
+range.
+
+## Confidence
 
 Each line item carries a confidence:
 
@@ -72,12 +98,8 @@ Each line item carries a confidence:
 - `quoted`: read off a live JLCPCB quote page.
 - `calibrated`: fitted to tscircuit's own shipped orders.
 - `heuristic`: an approximation with a wide low/high range. Bare-PCB prices
-  for boards over 100x100mm, more than 5 pieces, or 6+ layers are all
-  heuristic today.
-
-`tests/real-orders-replay.test.ts` replays two real orders and one live quote.
-It rebuilds their BOM from the invoices, so it checks the fee rules, not part
-matching.
+  for 1-2 layer boards over 100x100mm, more than 5 pieces, 6+ layers, ENIG
+  and all flex boards are heuristic today.
 
 ## Development
 

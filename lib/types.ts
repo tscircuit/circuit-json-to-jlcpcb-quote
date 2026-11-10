@@ -1,8 +1,42 @@
 import type { AnyCircuitElement } from "circuit-json"
 
+export type CircuitJson = AnyCircuitElement[]
+
+/** e.g. "F_Cu.gbr", "bom.csv"; folders are not part of the name */
+export type FabricationFileName = string
+/** A fabrication bundle: file name -> text content */
+export type FabricationFiles = Record<FabricationFileName, string>
+
 export type AssemblyType = "none" | "economic" | "standard"
 export type SurfaceFinish = "hasl_leaded" | "hasl_lead_free" | "enig"
+export type BoardMaterial = "fr4" | "flex"
+export type BoardSide = "top" | "bottom"
+export type PartSource = "jlcpcb" | "jlcsearch"
+export type LayerCount = number
+
+/**
+ * Where a number comes from:
+ * - published: JLCPCB help pages
+ * - quoted: read off a live JLCPCB quote page
+ * - calibrated: fitted to tscircuit's own shipped orders
+ * - heuristic: an approximation with a wide low/high range
+ */
 export type Confidence = "published" | "quoted" | "calibrated" | "heuristic"
+
+/** JLCPCB part number such as "C25744" */
+export type LcscPartNumber = string
+
+/** The subset of `fetch` this library needs, so fakes need no casts. */
+type HttpHeaderName = string
+
+export type FetchLike = (
+  url: string,
+  init?: {
+    method?: string
+    headers?: Record<HttpHeaderName, string>
+    body?: string
+  },
+) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>
 
 export interface JlcpcbQuoteOptions {
   /** Bare PCBs ordered. Default 5. */
@@ -11,7 +45,7 @@ export interface JlcpcbQuoteOptions {
   assembledQuantity?: number
   /** "auto" picks economic when the board allows it. Default "auto". */
   assembly?: AssemblyType | "auto"
-  /** Default "hasl_leaded". */
+  /** Rigid boards only. Default "hasl_leaded". */
   surfaceFinish?: SurfaceFinish
   /** Standard PCBA only. "auto" inspects BGA/LGA/QFN parts. Default "auto". */
   xrayInspection?: boolean | "auto"
@@ -21,17 +55,21 @@ export interface JlcpcbQuoteOptions {
   confirmProductionFile?: boolean
   /** Economic PCBA only. Default true, as on the order form. */
   nitrogenReflow?: boolean
-  /** Multiplies published fees, for exchange-rate drift. Default 1. */
-  priceAdjustmentFactor?: number
-  /** Set false to skip part lookups (parts priced at 0). */
-  lookupParts?: boolean
   /**
-   * Where prices come from. "jlcpcb" (default) reads JLCPCB's parts library
-   * for quantity price tiers and billed spares, falling back to jlcsearch.
+   * What to do with a BOM line that cannot be priced (no part number, not in
+   * JLCPCB's library, no footprint). "error" (default) throws, because
+   * leaving parts out makes the quote come out low. "exclude" leaves them out
+   * and lists them in `excludedBomLines`.
    */
-  partSource?: "jlcpcb" | "jlcsearch"
+  unresolvedParts?: "error" | "exclude"
+  /**
+   * "jlcpcb" (default) prices parts from JLCPCB's parts library: quantity
+   * price breaks and billed spares. "jlcsearch" uses jlcsearch's single-piece
+   * price and estimates the spares.
+   */
+  partSource?: PartSource
   jlcsearchBaseUrl?: string
-  fetch?: typeof fetch
+  fetch?: FetchLike
 }
 
 export interface BoardFeatures {
@@ -39,59 +77,66 @@ export interface BoardFeatures {
   heightMm: number
   numLayers: number
   thicknessMm: number
-  material: string
-  /** Flex boards only: number of stiffener layers found */
-  stiffenerCount?: number
+  material: BoardMaterial
+  /** Flex boards only */
+  stiffenerCount: number
   viaCount: number
-  /** The via most likely to draw a supplement: smallest hole, then pad. */
-  smallestVia: { holeDiameterMm: number; outerDiameterMm: number } | null
-  minPlatedHoleDiameterMm: number | null
+  /** The via most likely to draw a charge: smallest hole, then smallest pad. */
+  smallestVia: { holeDiameterMm: number; padDiameterMm: number } | null
   holeCount: number
   minTraceWidthMm: number | null
-  sidesWithComponents: ("top" | "bottom")[]
+  sidesWithComponents: BoardSide[]
+  /** Solder paste openings on the populated sides, one per SMT joint */
+  smtJointsPerBoard: number
 }
 
-export interface JlcPart {
-  lcsc: string
-  mfr: string
-  package: string
-  description: string
-  isBasic: boolean
-  isPreferred: boolean
-  /** Price for one piece */
-  unitPrice: number
-  stock: number | null
-  /** Quantity price breaks, ascending. Only from JLCPCB's parts library. */
-  priceTiers?: { fromQuantity: number; unitPrice: number }[]
-  /** Spares JLCPCB bills on top of the quantity used (extended parts). */
-  spareQuantity?: number
-  /** Smallest quantity JLCPCB bills (extended parts). */
-  minimumQuantity?: number
-  source?: "jlcpcb" | "jlcsearch"
+/** A jlcsearch filter name, e.g. "resistance" or "package" */
+type JlcsearchQueryField = string
+
+/** How to find a passive that has no part number on jlcsearch. */
+export interface PassiveLookup {
+  category: "resistors" | "capacitors"
+  query: Record<JlcsearchQueryField, string>
 }
 
 export interface BomLine {
   designators: string[]
   /** Per board */
   quantity: number
-  ftype?: string
-  value?: string
-  manufacturerPartNumber?: string
-  requestedJlcPartNumber?: string
-  smtJointsPerPart: number
-  throughHoleJointsPerPart: number
-  /** jlcsearch category query used when no part number is given */
-  valueLookup?: {
-    category: "resistors" | "capacitors" | "leds"
-    params: Record<string, string>
-  }
-  /** Filled by the jlcsearch lookup */
-  part?: JlcPart
-  matchMethod?: "jlc_part_number" | "manufacturer_part_number" | "value"
+  /** The BOM's Comment / Value column */
+  comment: string
+  requestedJlcPartNumber?: LcscPartNumber
+  passiveLookup?: PassiveLookup
+}
+
+export interface JlcPart {
+  lcsc: LcscPartNumber
+  mfr: string
+  package: string
+  isBasic: boolean
+  isPreferred: boolean
+  /** Price for one piece */
+  unitPrice: number
+  stock: number | null
+  /** Quantity price breaks, ascending. Only from JLCPCB's parts library. */
+  priceTiers: { fromQuantity: number; unitPrice: number }[]
+  /**
+   * What JLCPCB bills for extended parts on top of the quantity used.
+   * Null when the source (jlcsearch) does not say.
+   */
+  billing: { spareQuantity: number; minimumQuantity: number } | null
+  source: PartSource
+}
+
+export interface PricedBomLine extends BomLine {
+  part: JlcPart
+  matchMethod: "jlc_part_number" | "passive_spec"
+  /** Pads of the part's JLCPCB footprint */
+  footprintJoints: { smt: number; throughHole: number }
 }
 
 export interface QuoteLineItem {
-  category: "pcb" | "supplement" | "assembly" | "components"
+  category: "pcb" | "review_charge" | "assembly" | "components"
   key: string
   label: string
   cost: number
@@ -101,10 +146,15 @@ export interface QuoteLineItem {
   note?: string
 }
 
+export interface QuoteSection {
+  lineItems: QuoteLineItem[]
+  warnings: string[]
+}
+
 export interface JlcpcbQuote {
   currency: "USD"
   priceTableVersion: string
-  options: {
+  order: {
     quantity: number
     assembledQuantity: number
     assembly: AssemblyType
@@ -112,14 +162,14 @@ export interface JlcpcbQuote {
   }
   features: BoardFeatures
   lineItems: QuoteLineItem[]
-  bom: BomLine[]
+  bom: PricedBomLine[]
+  /** Lines left out because `unresolvedParts` is "exclude" */
+  excludedBomLines: { line: BomLine; reason: string }[]
   pcbTotal: number
   assemblyTotal: number
-  /** Manufacturing cost: bare PCBs + supplements + assembly + parts. */
+  /** Manufacturing cost: bare PCBs + review charges + assembly + parts. */
   total: number
   lowTotal: number
   highTotal: number
   warnings: string[]
 }
-
-export type CircuitJson = AnyCircuitElement[]
