@@ -1,0 +1,37 @@
+{
+  "name": "@tscircuit/circuit-json-to-jlcpcb-quote",
+  "version": "0.0.1",
+  "description": "Convert Circuit JSON into a JLCPCB manufacturing quote",
+  "license": "MIT",
+  "type": "module",
+  "module": "lib/index.ts",
+  "types": "lib/index.ts",
+  "exports": {
+    ".": "./lib/index.ts"
+  },
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tscircuit/circuit-json-to-jlcpcb-quote.git"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "format": "biome format --write .",
+    "format:check": "biome format ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.6",
+    "@types/bun": "latest",
+    "circuit-json": "^0.0.548"
+  },
+  "peerDependencies": {
+    "circuit-json": "*",
+    "typescript": ">=5"
+  }
+}
