@@ -13,7 +13,7 @@ Releases are published to GitHub Packages and served from jscdn, so no registry
 configuration or token is needed:
 
 ```sh
-bun add https://jscdn.tscircuit.com/@tscircuit/circuit-json-to-jlcpcb-quote/0.0.1
+bun add https://jscdn.tscircuit.com/@tscircuit/circuit-json-to-jlcpcb-quote/0.0.2
 ```
 
 ## Usage
@@ -34,4 +34,5 @@ bun run format
 ```
 
 The package ships its TypeScript source from `lib/` and has no build step.
-Every push to `main` publishes a new version.
+Every push to `main` after the first publishes a new version, so replace
+`0.0.2` above with the version in `package.json`.
