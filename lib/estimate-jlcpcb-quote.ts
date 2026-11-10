@@ -25,6 +25,8 @@ export const estimateJlcpcbQuote = (params: {
   bom: BomLine[]
   options?: JlcpcbQuoteOptions
   warnings?: string[]
+  /** Joint counts measured from the layout, when the BOM lines carry none. */
+  jointsPerBoard?: { smt: number; throughHole: number }
 }): JlcpcbQuote => {
   const { features } = params
   const options = params.options ?? {}
@@ -217,10 +219,12 @@ export const estimateJlcpcbQuote = (params: {
     const p = assemblyPrices
     const smtJoints =
       assembledQuantity *
-      sum(placed, (line) => line.quantity * line.smtJointsPerPart)
+      (params.jointsPerBoard?.smt ??
+        sum(placed, (line) => line.quantity * line.smtJointsPerPart))
     const thtJoints =
       assembledQuantity *
-      sum(placed, (line) => line.quantity * line.throughHoleJointsPerPart)
+      (params.jointsPerBoard?.throughHole ??
+        sum(placed, (line) => line.quantity * line.throughHoleJointsPerPart))
 
     if (assembly === "economic") {
       add(
