@@ -1,4 +1,4 @@
-import type { QuoteLineItem } from "../types"
+import type { AdditionalFee, QuoteLineItem } from "../types"
 
 export const roundToCents = (amount: number) => Math.round(amount * 100) / 100
 
@@ -24,4 +24,25 @@ export const createQuoteLineItem = (item: {
   highCost: roundToCents(item.highCost ?? item.cost),
   confidence: item.confidence,
   ...(item.note ? { note: item.note } : {}),
+})
+
+/** Build an additional fee: a line item with the reason and the way out. */
+export const createAdditionalFee = (fee: {
+  key: string
+  label: string
+  cost: number
+  confidence: QuoteLineItem["confidence"]
+  reason: string
+  howToAvoid: string
+}): AdditionalFee => ({
+  ...createQuoteLineItem({
+    category: "additional_fee",
+    key: fee.key,
+    label: fee.label,
+    cost: fee.cost,
+    confidence: fee.confidence,
+  }),
+  category: "additional_fee",
+  reason: fee.reason,
+  howToAvoid: fee.howToAvoid,
 })

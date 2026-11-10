@@ -132,7 +132,13 @@ test("quotes Circuit JSON through its fabrication files", async () => {
   expect(quote.warnings.join("\n")).toContain(
     "J1: no JLCPCB part number; left out of assembly and parts cost",
   )
-  expect(formatJlcpcbQuote(quote)).toContain("4-layer FR4")
+  expect(quote.additionalFees.map((fee) => fee.key)).toEqual(["deburring"])
+  const report = formatJlcpcbQuote(quote)
+  expect(report).toContain("Board fabrication (5 boards)")
+  expect(report).toContain("Additional fees (1 detected)")
+  expect(report).toContain("Avoid: Make the shorter side at least 30mm")
+  expect(report).toContain("Assembly, economic PCBA (2 boards)")
+  expect(report).toContain("Assembly, standard PCBA (2 boards)")
 })
 
 test("bare-board quote needs no part lookups", async () => {

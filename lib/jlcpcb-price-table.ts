@@ -95,7 +95,11 @@ export const fabricationPrices = {
   },
 }
 
-export const reviewChargePrices = {
+/**
+ * Fees JLCPCB adds on top of the standard price because of something in the
+ * design. Their engineers add most of them after reviewing the files.
+ */
+export const additionalFeePrices = {
   /**
    * calibrated: the one notice with no duty/shipping bundled asks 54.18; the
    * 67.91 and 67.98 notices are 54.18 plus about 25% duty/VAT. Observed on
@@ -106,6 +110,8 @@ export const reviewChargePrices = {
     price: 54.18,
     viaHoleBelowMm: 0.3,
     viaPadUpToMm: 0.4,
+    /** The smallest via on the order form that carries no charge */
+    freeVia: { holeDiameterMm: 0.3, padDiameterMm: 0.45 },
   },
   /** published: per order, for holes below these diameters */
   verySmallVia: {

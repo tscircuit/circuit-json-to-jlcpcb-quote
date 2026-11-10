@@ -23,7 +23,7 @@ const estimateFlexBoard = (order: BarePcbOrder): QuoteLineItem[] => {
   const boardCost = flex.engineering + flex.perM2 * areaM2
   const lineItems = [
     createQuoteLineItem({
-      category: "pcb",
+      category: "fabrication",
       key: "pcb_base",
       label: `${order.features.numLayers}-layer flex, ${order.quantity} pcs, engineering fee + ${areaM2.toFixed(3)} m²`,
       cost: boardCost,
@@ -37,7 +37,7 @@ const estimateFlexBoard = (order: BarePcbOrder): QuoteLineItem[] => {
     const stiffenerCost = order.features.stiffenerCount * flex.stiffener
     lineItems.push(
       createQuoteLineItem({
-        category: "pcb",
+        category: "fabrication",
         key: "stiffener",
         label: "Stiffener",
         cost: stiffenerCost,
@@ -71,7 +71,7 @@ const estimateRigidBoard = (order: BarePcbOrder): QuoteLineItem => {
   const specialOffer = getSpecialOffer(order)
   if (specialOffer !== undefined) {
     return createQuoteLineItem({
-      category: "pcb",
+      category: "fabrication",
       key: "pcb_base",
       label: `${layers}-layer FR4, ${quantity} pcs, special offer`,
       cost: specialOffer,
@@ -93,7 +93,7 @@ const estimateRigidBoard = (order: BarePcbOrder): QuoteLineItem => {
     ? fabricationPrices.quotedRange
     : fabricationPrices.heuristicRange
   return createQuoteLineItem({
-    category: "pcb",
+    category: "fabrication",
     key: "pcb_base",
     label: `${layers}-layer FR4, ${quantity} pcs, engineering fee + ${areaM2.toFixed(3)} m²`,
     cost: boardCost,
@@ -116,7 +116,7 @@ const estimateSurfaceFinish = (order: BarePcbOrder): QuoteLineItem[] => {
     }
     return [
       createQuoteLineItem({
-        category: "pcb",
+        category: "fabrication",
         key: "lead_free_hasl",
         label: "Lead-free HASL",
         cost: surcharge,
@@ -132,7 +132,7 @@ const estimateSurfaceFinish = (order: BarePcbOrder): QuoteLineItem[] => {
   }
   return [
     createQuoteLineItem({
-      category: "pcb",
+      category: "fabrication",
       key: "enig",
       label: "ENIG finish",
       cost: surcharge,
@@ -167,7 +167,7 @@ export const estimateBarePcb = (
   if (order.confirmProductionFile) {
     lineItems.push(
       createQuoteLineItem({
-        category: "pcb",
+        category: "fabrication",
         key: "confirm_production_file",
         label: "Confirm production file",
         cost: fabricationPrices.confirmProductionFile,

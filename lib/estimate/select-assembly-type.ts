@@ -7,38 +7,42 @@ import type {
 } from "../types"
 
 /**
- * Decide which PCBA service the order uses. "auto" picks Economic when the
- * board allows it: one populated side, rigid, and few enough layers.
+ * Why JLCPCB does not offer Economic PCBA for a board, or null when it does.
+ * Economic PCBA assembles one side of a rigid board with few layers.
+ */
+export const getEconomicUnavailableReason = (
+  features: BoardFeatures,
+): string | null => {
+  if (features.material === "flex") {
+    return "Economic PCBA is not offered for flex boards"
+  }
+  if (features.sidesWithComponents.length > 1) {
+    return "Economic PCBA assembles one side only and this board has parts on both sides"
+  }
+  if (features.numLayers > assemblyPrices.economic.maxLayers) {
+    return `Economic PCBA is offered up to ${assemblyPrices.economic.maxLayers} layers`
+  }
+  return null
+}
+
+/**
+ * Decide which PCBA service the order's totals are for. "auto" picks
+ * Economic when the board allows it. Asking for Economic on a board that
+ * cannot have it is an error.
  */
 export const selectAssemblyType = (order: {
   features: BoardFeatures
   bom: PricedBomLine[]
   requestedAssembly: JlcpcbQuoteOptions["assembly"]
-}): { assembly: AssemblyType; warnings: string[] } => {
-  const { features, bom } = order
+}): AssemblyType => {
   const requestedAssembly = order.requestedAssembly ?? "auto"
-  if (requestedAssembly === "none" || bom.length === 0) {
-    return { assembly: "none", warnings: [] }
-  }
-  const isDoubleSided = features.sidesWithComponents.length > 1
-  const isFlex = features.material === "flex"
+  if (requestedAssembly === "none" || order.bom.length === 0) return "none"
+  const economicUnavailableReason = getEconomicUnavailableReason(order.features)
   if (requestedAssembly === "auto") {
-    const needsStandard =
-      isDoubleSided ||
-      isFlex ||
-      features.numLayers > assemblyPrices.economic.maxLayers
-    return { assembly: needsStandard ? "standard" : "economic", warnings: [] }
+    return economicUnavailableReason ? "standard" : "economic"
   }
-  if (requestedAssembly === "economic" && isFlex) {
-    throw new Error("Economic PCBA is not offered for flex boards")
+  if (requestedAssembly === "economic" && economicUnavailableReason) {
+    throw new Error(economicUnavailableReason)
   }
-  if (requestedAssembly === "economic" && isDoubleSided) {
-    return {
-      assembly: "economic",
-      warnings: [
-        "Economic PCBA assembles one side only; bottom-side parts need Standard PCBA",
-      ],
-    }
-  }
-  return { assembly: requestedAssembly, warnings: [] }
+  return requestedAssembly
 }

@@ -32,9 +32,22 @@ const quote = await convertCircuitJsonToJlcpcbQuote({
   surfaceFinish: "hasl_leaded", // "hasl_lead_free" | "enig"
 })
 
-console.log(quote.total, quote.lowTotal, quote.highTotal)
 console.log(formatJlcpcbQuote(quote))
 ```
+
+The quote keeps three things apart:
+
+- **Board fabrication** at the standard price: `fabricationTotal` and
+  `fabricationPerBoard`.
+- **Additional fees** the design triggers, such as the 4-wire Kelvin test for
+  very small vias: `additionalFees`, each with a `reason` and `howToAvoid`,
+  and `additionalFeesTotal`. They are not part of the fabrication or assembly
+  price.
+- **Assembly**, priced for both services in `assemblyOptions` (Economic and
+  Standard PCBA, each with `total` and `perBoard`). A service JLCPCB does not
+  offer for the board carries an `unavailableReason` instead.
+
+`total` is fabrication + additional fees + the service in `order.assembly`.
 
 From the command line:
 

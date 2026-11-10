@@ -132,7 +132,7 @@ export interface PricedBomLine extends BomLine {
 }
 
 export interface QuoteLineItem {
-  category: "pcb" | "review_charge" | "assembly" | "components"
+  category: "fabrication" | "additional_fee" | "assembly" | "components"
   key: string
   label: string
   cost: number
@@ -142,8 +142,35 @@ export interface QuoteLineItem {
   note?: string
 }
 
+/**
+ * A charge JLCPCB adds on top of the standard price because of something in
+ * the design, such as the 4-wire Kelvin test for very small vias. Kept apart
+ * from the fabrication and assembly prices because the design can avoid it.
+ */
+export interface AdditionalFee extends QuoteLineItem {
+  category: "additional_fee"
+  /** What in the design triggers the fee */
+  reason: string
+  /** What to change in the design so the fee does not apply */
+  howToAvoid: string
+}
+
 export interface QuoteSection {
   lineItems: QuoteLineItem[]
+  warnings: string[]
+}
+
+/** The price of one PCBA service for this order: fees plus parts */
+export interface AssemblyOption {
+  assembly: "economic" | "standard"
+  /** Why JLCPCB does not offer this service for the board, if it does not */
+  unavailableReason: string | null
+  lineItems: QuoteLineItem[]
+  total: number
+  lowTotal: number
+  highTotal: number
+  /** `total` divided by the assembled quantity */
+  perBoard: number
   warnings: string[]
 }
 
@@ -153,17 +180,33 @@ export interface JlcpcbQuote {
   order: {
     quantity: number
     assembledQuantity: number
+    /** The PCBA service the totals below are for */
     assembly: AssemblyType
     surfaceFinish: SurfaceFinish
   }
   features: BoardFeatures
+
+  /** Bare boards at the standard price, without additional fees */
+  fabricationLineItems: QuoteLineItem[]
+  fabricationTotal: number
+  /** `fabricationTotal` divided by the board quantity */
+  fabricationPerBoard: number
+
+  /** Charges triggered by the design; see `AdditionalFee` */
+  additionalFees: AdditionalFee[]
+  additionalFeesTotal: number
+
+  /** Economic and Standard PCBA side by side; empty without assembly */
+  assemblyOptions: AssemblyOption[]
+  /** Total of the PCBA service in `order.assembly` (0 without assembly) */
+  assemblyTotal: number
+
+  /** Every line item of the order as quoted, with `order.assembly` */
   lineItems: QuoteLineItem[]
   bom: PricedBomLine[]
   /** Lines left out because `unresolvedParts` is "exclude" */
   excludedBomLines: { line: BomLine; reason: string }[]
-  pcbTotal: number
-  assemblyTotal: number
-  /** Manufacturing cost: bare PCBs + review charges + assembly + parts. */
+  /** fabricationTotal + additionalFeesTotal + assemblyTotal */
   total: number
   lowTotal: number
   highTotal: number
