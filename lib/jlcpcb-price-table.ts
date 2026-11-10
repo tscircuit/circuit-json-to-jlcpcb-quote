@@ -40,6 +40,19 @@ export const assemblyPrices = {
   throughHolePerJoint: 0.0165,
   handSolderingLaborPerOrder: 3.61,
   confirmPartsPlacement: 0.45,
+  /**
+   * published: flex boards are assembled on fixtures.
+   * [max assembled boards, number of fixtures]
+   */
+  flexFixturePrice: 24.63,
+  flexFixtureTiers: [
+    [29, 2],
+    [99, 3],
+    [199, 5],
+    [349, 10],
+    [499, 15],
+    [Number.POSITIVE_INFINITY, 20],
+  ] as [number, number][],
   /** [max pieces, price per piece] */
   xrayPerPieceTiers: [
     [10, 1.64],
@@ -63,6 +76,8 @@ export const supplementPrices = {
   /** published: deburring per piece */
   deburrSide15To30mmPerPiece: 0.02,
   deburrSideUnder15mmPerPiece: 0.05,
+  /** published: 2-3mil trace/space on flex boards */
+  fineTraceFractionFlex: 0.2,
   /** published: 3.0-3.5mil trace/space on 4-8 layers (30% on 10+) */
   fineTraceFraction4To8Layers: 0.2,
   fineTraceFraction10PlusLayers: 0.3,
@@ -83,6 +98,16 @@ export const fabricationPrices = {
     8: { engineering: 75, perM2: 400 },
   } as Record<number, { engineering: number; perM2: number }>,
   heuristicRangeFraction: 0.35,
+  /**
+   * heuristic: flex (FPC) boards. JLCPCB publishes no flex price table and no
+   * tscircuit flex order has been recorded yet, so these are placeholders.
+   */
+  flex: {
+    engineering: 15,
+    perM2: 600,
+    stiffener: 8,
+    rangeFraction: 0.5,
+  },
   /** quoted for 4 layers; 1-2 layers are heuristic */
   leadFreeHaslSurcharge: { 1: 1, 2: 1, 4: 5.3 } as Record<number, number>,
   /** quoted: "Confirm Production file: Yes" */

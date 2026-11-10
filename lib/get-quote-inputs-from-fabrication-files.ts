@@ -247,6 +247,15 @@ export const getQuoteInputsFromFabricationFiles = (
     }
   }
 
+  // Only flex boards carry stiffeners, so a stiffener layer marks the board
+  // as flex.
+  const stiffenerCount = find(/stiffener/i).length
+  if (stiffenerCount > 0) {
+    warnings.push(
+      "Stiffener layer found: quoted as a flex (FPC) board; flex thickness and stiffener thickness are not read from the files",
+    )
+  }
+
   const paste = (pattern: RegExp) => {
     const text = one(pattern)
     return text ? summarizeGerber(text).flashCount : 0
@@ -267,8 +276,9 @@ export const getQuoteInputsFromFabricationFiles = (
       widthMm: Math.round((outline.maxX - outline.minX) * 100) / 100,
       heightMm: Math.round((outline.maxY - outline.minY) * 100) / 100,
       numLayers: Math.max(copperNames.length, 1),
-      thicknessMm: 1.6,
-      material: "fr4",
+      thicknessMm: stiffenerCount > 0 ? 0.11 : 1.6,
+      material: stiffenerCount > 0 ? "flex" : "fr4",
+      ...(stiffenerCount > 0 ? { stiffenerCount } : {}),
       viaCount: vias.length,
       smallestVia,
       minPlatedHoleDiameterMm:

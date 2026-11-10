@@ -7,7 +7,7 @@ export const formatJlcpcbQuote = (quote: JlcpcbQuote): string => {
   const { features: f, options: o } = quote
   const lines: string[] = [
     `JLCPCB estimate (prices as of ${quote.priceTableVersion}, USD, excludes shipping/duties/tax)`,
-    `Board: ${f.widthMm} x ${f.heightMm} mm, ${f.numLayers} layers, ${f.thicknessMm}mm ${f.material}, ${o.surfaceFinish}`,
+    `Board: ${f.widthMm} x ${f.heightMm} mm, ${f.numLayers} layers, ${f.thicknessMm}mm ${f.material}, ${f.material === "flex" ? "ENIG" : o.surfaceFinish}`,
     `Order: ${o.quantity} PCBs, ${o.assembly === "none" ? "no assembly" : `${o.assembledQuantity} assembled (${o.assembly} PCBA)`}`,
     f.smallestVia
       ? `Vias: ${f.viaCount}, smallest ${f.smallestVia.holeDiameterMm}/${f.smallestVia.outerDiameterMm} mm`

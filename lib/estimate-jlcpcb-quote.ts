@@ -59,76 +59,102 @@ export const estimateJlcpcbQuote = (params: {
   }
 
   // ---- Bare PCB -----------------------------------------------------------
-  if (features.material !== "fr4") {
+  const isFlex = features.material === "flex"
+  if (!isFlex && features.material !== "fr4") {
     warnings.push(
-      `Material "${features.material}" is priced as FR4; only FR4 is modelled`,
+      `Material "${features.material}" is priced as FR4; only FR4 and flex are modelled`,
     )
   }
-  if (features.thicknessMm !== 1.6) {
+  if (!isFlex && features.thicknessMm !== 1.6) {
     warnings.push(
       `Thickness ${features.thicknessMm}mm is priced as 1.6mm; other thicknesses may cost more`,
     )
   }
-  const fitsSpecialOffer = features.widthMm <= 100 && features.heightMm <= 100
   const areaM2 = (features.widthMm * features.heightMm * quantity) / 1e6
-  const specialOffer =
-    quantity <= 5
-      ? fabricationPrices.specialOffer5Pcs[layers]
-      : quantity <= 10
-        ? fabricationPrices.specialOffer10Pcs[layers]
-        : undefined
   let pcbBase: number
-  if (fitsSpecialOffer && specialOffer !== undefined) {
-    pcbBase = specialOffer
+  if (isFlex) {
+    const flex = fabricationPrices.flex
+    pcbBase = flex.engineering + flex.perM2 * areaM2
     add(
       "pcb",
       "pcb_base",
-      `${layers}-layer FR4, ${quantity} pcs, special offer`,
+      `${layers}-layer flex, ${quantity} pcs, engineering fee + ${areaM2.toFixed(3)} m²`,
       pcbBase,
-      quantity <= 5 && layers <= 4 ? "calibrated" : "heuristic",
+      "heuristic",
+      {
+        low: pcbBase * (1 - flex.rangeFraction),
+        high: pcbBase * (1 + flex.rangeFraction),
+        note: "No flex quote or order to calibrate against yet",
+      },
     )
-  } else {
-    const pricing =
-      fabricationPrices.areaPricing[layers] ?? fabricationPrices.areaPricing[8]!
-    if (!fabricationPrices.areaPricing[layers]) {
-      warnings.push(`${layers}-layer boards are priced as 8-layer`)
+    if (features.stiffenerCount) {
+      const stiffeners = features.stiffenerCount * flex.stiffener
+      add("pcb", "stiffener", "Stiffener", stiffeners, "heuristic", {
+        low: 0,
+        high: stiffeners * 2.5,
+      })
     }
-    pcbBase = pricing.engineering + pricing.perM2 * areaM2
-    const range = fabricationPrices.heuristicRangeFraction
-    add(
-      "pcb",
-      "pcb_base",
-      `${layers}-layer FR4, ${quantity} pcs, engineering fee + ${areaM2.toFixed(3)} m²`,
-      pcbBase,
-      layers === 4 ? "quoted" : "heuristic",
-      layers === 4
-        ? {
-            low: pcbBase * 0.9,
-            high: pcbBase * 1.15,
-            note: "Fitted to one quote (144.5x82mm, 5 pcs)",
-          }
-        : {
-            low: pcbBase * (1 - range),
-            high: pcbBase * (1 + range),
-            note: "No real order of this size/quantity to calibrate against yet",
-          },
-    )
-  }
-  if (surfaceFinish === "hasl_lead_free") {
-    const surcharge = fabricationPrices.leadFreeHaslSurcharge[layers] ?? 0
-    add(
-      "pcb",
-      "lead_free_hasl",
-      "Lead-free HASL",
-      surcharge,
-      layers === 4 ? "quoted" : "heuristic",
-    )
-  } else if (surfaceFinish === "enig") {
-    const surcharge = fabricationPrices.enigSurcharge[layers] ?? 0
-    add("pcb", "enig", "ENIG finish", surcharge, "heuristic", {
-      low: surcharge * 0.6,
-      high: surcharge * 1.6,
-    })
+  } else {
+    const fitsSpecialOffer = features.widthMm <= 100 && features.heightMm <= 100
+    const specialOffer =
+      quantity <= 5
+        ? fabricationPrices.specialOffer5Pcs[layers]
+        : quantity <= 10
+          ? fabricationPrices.specialOffer10Pcs[layers]
+          : undefined
+    if (fitsSpecialOffer && specialOffer !== undefined) {
+      pcbBase = specialOffer
+      add(
+        "pcb",
+        "pcb_base",
+        `${layers}-layer FR4, ${quantity} pcs, special offer`,
+        pcbBase,
+        quantity <= 5 && layers <= 4 ? "calibrated" : "heuristic",
+      )
+    } else {
+      const pricing =
+        fabricationPrices.areaPricing[layers] ??
+        fabricationPrices.areaPricing[8]!
+      if (!fabricationPrices.areaPricing[layers]) {
+        warnings.push(`${layers}-layer boards are priced as 8-layer`)
+      }
+      pcbBase = pricing.engineering + pricing.perM2 * areaM2
+      const range = fabricationPrices.heuristicRangeFraction
+      add(
+        "pcb",
+        "pcb_base",
+        `${layers}-layer FR4, ${quantity} pcs, engineering fee + ${areaM2.toFixed(3)} m²`,
+        pcbBase,
+        layers === 4 ? "quoted" : "heuristic",
+        layers === 4
+          ? {
+              low: pcbBase * 0.9,
+              high: pcbBase * 1.15,
+              note: "Fitted to one quote (144.5x82mm, 5 pcs)",
+            }
+          : {
+              low: pcbBase * (1 - range),
+              high: pcbBase * (1 + range),
+              note: "No real order of this size/quantity to calibrate against yet",
+            },
+      )
+    }
+    if (surfaceFinish === "hasl_lead_free") {
+      const surcharge = fabricationPrices.leadFreeHaslSurcharge[layers] ?? 0
+      add(
+        "pcb",
+        "lead_free_hasl",
+        "Lead-free HASL",
+        surcharge,
+        layers === 4 ? "quoted" : "heuristic",
+      )
+    } else if (surfaceFinish === "enig") {
+      const surcharge = fabricationPrices.enigSurcharge[layers] ?? 0
+      add("pcb", "enig", "ENIG finish", surcharge, "heuristic", {
+        low: surcharge * 0.6,
+        high: surcharge * 1.6,
+      })
+    }
   }
 
   if (options.confirmProductionFile !== false) {
@@ -148,11 +174,16 @@ export const estimateJlcpcbQuote = (params: {
       "supplement",
       "four_wire_kelvin_test",
       `4-wire Kelvin test (via ${via.holeDiameterMm}/${via.outerDiameterMm}mm)`,
-      supplementPrices.fourWireKelvinTest,
-      "calibrated",
-      {
-        note: "Avoid it with vias of 0.3mm hole / 0.45mm diameter or larger",
-      },
+      isFlex ? 0 : supplementPrices.fourWireKelvinTest,
+      isFlex ? "heuristic" : "calibrated",
+      isFlex
+        ? {
+            high: supplementPrices.fourWireKelvinTest,
+            note: "Seen on rigid boards only; unknown whether flex boards are charged",
+          }
+        : {
+            note: "Avoid it with vias of 0.3mm hole / 0.45mm diameter or larger",
+          },
     )
   }
   if (via && via.holeDiameterMm < (layers >= 4 ? 0.2 : 0.15)) {
@@ -165,7 +196,7 @@ export const estimateJlcpcbQuote = (params: {
     )
   }
   const shortSide = Math.min(features.widthMm, features.heightMm)
-  if (shortSide < 30) {
+  if (!isFlex && shortSide < 30) {
     add(
       "supplement",
       "deburring",
@@ -178,18 +209,20 @@ export const estimateJlcpcbQuote = (params: {
     )
   }
   if (
-    layers >= 4 &&
     features.minTraceWidthMm !== null &&
-    features.minTraceWidthMm < 0.0895
+    (isFlex
+      ? features.minTraceWidthMm < 0.0765
+      : layers >= 4 && features.minTraceWidthMm < 0.0895)
   ) {
-    const fraction =
-      layers >= 10
+    const fraction = isFlex
+      ? supplementPrices.fineTraceFractionFlex
+      : layers >= 10
         ? supplementPrices.fineTraceFraction10PlusLayers
         : supplementPrices.fineTraceFraction4To8Layers
     add(
       "supplement",
       "fine_trace",
-      `Trace width ${features.minTraceWidthMm}mm (under 3.5mil)`,
+      `Trace width ${features.minTraceWidthMm}mm (under ${isFlex ? "3" : "3.5"}mil)`,
       pcbBase * fraction,
       "published",
     )
@@ -204,9 +237,30 @@ export const estimateJlcpcbQuote = (params: {
       "Board is over 650 cm²; JLCPCB large-board charges are not modelled",
     )
   }
-  if (via && via.holeDiameterMm < 0.15) {
+  const minViaHole = layers >= 4 && isFlex ? 0.15 : 0.1
+  if (via && via.holeDiameterMm < minViaHole) {
     warnings.push(
-      `Via hole ${via.holeDiameterMm}mm is below JLCPCB's 0.15mm minimum`,
+      `Via hole ${via.holeDiameterMm}mm is below JLCPCB's ${minViaHole}mm minimum`,
+    )
+  }
+  if (
+    !isFlex &&
+    layers <= 2 &&
+    features.minTraceWidthMm !== null &&
+    features.minTraceWidthMm < 0.0995
+  ) {
+    warnings.push(
+      `Trace width ${features.minTraceWidthMm}mm is below JLCPCB's 0.10mm minimum for 1-2 layer FR4 boards`,
+    )
+  }
+  if (
+    isFlex &&
+    features.minTraceWidthMm !== null &&
+    features.minTraceWidthMm >= 0.0765 &&
+    features.minTraceWidthMm < 0.089
+  ) {
+    warnings.push(
+      `Trace width ${features.minTraceWidthMm}mm needs 0.33oz copper on flex (0.5oz needs 3.5mil, 1oz needs 4mil)`,
     )
   }
 
@@ -222,9 +276,15 @@ export const estimateJlcpcbQuote = (params: {
       )
     }
   } else if (!options.assembly || options.assembly === "auto") {
-    assembly = doubleSided || layers > 6 ? "standard" : "economic"
+    assembly = doubleSided || layers > 6 || isFlex ? "standard" : "economic"
   } else {
     assembly = options.assembly
+  }
+  if (assembly === "economic" && isFlex) {
+    assembly = "standard"
+    warnings.push(
+      "Flex boards are assembled as Standard PCBA; quoted as standard",
+    )
   }
   if (assembly === "economic" && doubleSided) {
     warnings.push(
@@ -327,6 +387,18 @@ export const estimateJlcpcbQuote = (params: {
           factor,
         "published",
       )
+      if (isFlex) {
+        const fixtures = p.flexFixtureTiers.find(
+          ([max]) => assembledQuantity <= max,
+        )![1]
+        add(
+          "assembly",
+          "fixture",
+          `Flex assembly fixtures (${fixtures})`,
+          fixtures * p.flexFixturePrice * factor,
+          "published",
+        )
+      }
       const xrayParts = sum(
         placed.filter((line) => XRAY_PACKAGE.test(line.part!.package)),
         (line) => line.quantity,

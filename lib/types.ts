@@ -40,6 +40,8 @@ export interface BoardFeatures {
   numLayers: number
   thicknessMm: number
   material: string
+  /** Flex boards only: number of stiffener layers found */
+  stiffenerCount?: number
   viaCount: number
   /** The via most likely to draw a supplement: smallest hole, then pad. */
   smallestVia: { holeDiameterMm: number; outerDiameterMm: number } | null
