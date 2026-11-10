@@ -49,15 +49,15 @@ export const estimateJlcpcbQuote = (order: {
     boardCost: fabrication.boardCost,
   })
 
+  const requestedAssembledQuantity =
+    options.assembledQuantity ?? orderDefaults.assembledQuantity
   const assembly = selectAssemblyType({
     features,
     bom,
+    assembledQuantity: requestedAssembledQuantity,
     requestedAssembly: options.assembly,
   })
-  const assembledQuantity =
-    assembly === "none"
-      ? 0
-      : (options.assembledQuantity ?? orderDefaults.assembledQuantity)
+  const assembledQuantity = assembly === "none" ? 0 : requestedAssembledQuantity
   const assemblyOptions =
     assembly === "none"
       ? []

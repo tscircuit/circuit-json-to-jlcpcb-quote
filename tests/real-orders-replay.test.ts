@@ -193,8 +193,9 @@ test("assembly is priced for both Economic and Standard PCBA", () => {
   expect(doubleSided.order.assembly).toBe("standard")
   expect(doubleSided.assemblyOptions[0]).toMatchObject({
     assembly: "economic",
-    unavailableReason:
+    unavailableReasons: [
       "Economic PCBA assembles one side only and this board has parts on both sides",
+    ],
     total: 0,
   })
   expect(() =>
@@ -204,4 +205,34 @@ test("assembly is priced for both Economic and Standard PCBA", () => {
       options: { assembly: "economic" },
     }),
   ).toThrow("Economic PCBA assembles one side only")
+})
+
+test("a part smaller than 0402 switches the board to Standard PCBA", () => {
+  const quote = estimateJlcpcbQuote({
+    features: createBoardFeatures({ smtJointsPerBoard: 10 }),
+    bom: [
+      createPricedBomLine({ designators: ["U1"] }),
+      createPricedBomLine({
+        designators: ["R23", "R24"],
+        quantity: 2,
+        part: createJlcPart({ lcsc: "C106224", package: "0201" }),
+      }),
+    ],
+  })
+  expect(quote.order.assembly).toBe("standard")
+  expect(quote.assemblyOptions[0]?.unavailableReasons).toEqual([
+    "1 parts are Standard-only because Economic PCBA's smallest package is 0402: R23,R24 (C106224, 0201)",
+  ])
+})
+
+test("Economic PCBA is refused outside its published limits", () => {
+  const quote = estimateJlcpcbQuote({
+    features: createBoardFeatures({ widthMm: 150, numLayers: 8 }),
+    bom: [createPricedBomLine()],
+    options: { assembledQuantity: 60 },
+  })
+  expect(quote.assemblyOptions[0]?.unavailableReasons).toEqual([
+    "Economic PCBA is offered for 2, 4, 6-layer boards, not 8",
+    "Economic PCBA is offered up to 50 assembled boards, not 60",
+  ])
 })

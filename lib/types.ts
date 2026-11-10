@@ -163,8 +163,8 @@ export interface QuoteSection {
 /** The price of one PCBA service for this order: fees plus parts */
 export interface AssemblyOption {
   assembly: "economic" | "standard"
-  /** Why JLCPCB does not offer this service for the board, if it does not */
-  unavailableReason: string | null
+  /** Why JLCPCB does not offer this service for the order; empty if it does */
+  unavailableReasons: string[]
   lineItems: QuoteLineItem[]
   total: number
   lowTotal: number

@@ -8,7 +8,7 @@ import type {
 import { roundToCents } from "./create-quote-line-item"
 import { estimateAssemblyFees } from "./estimate-assembly-fees"
 import { estimatePartsCost } from "./estimate-parts-cost"
-import { getEconomicUnavailableReason } from "./select-assembly-type"
+import { getEconomicUnavailableReasons } from "./select-assembly-type"
 
 export const sumLineItems = (
   lineItems: QuoteLineItem[],
@@ -27,14 +27,12 @@ export const estimateAssemblyOption = (order: {
   assembledQuantity: number
   options: JlcpcbQuoteOptions
 }): AssemblyOption => {
-  const unavailableReason =
-    order.assembly === "economic"
-      ? getEconomicUnavailableReason(order.features)
-      : null
-  if (unavailableReason) {
+  const unavailableReasons =
+    order.assembly === "economic" ? getEconomicUnavailableReasons(order) : []
+  if (unavailableReasons.length > 0) {
     return {
       assembly: order.assembly,
-      unavailableReason,
+      unavailableReasons,
       lineItems: [],
       total: 0,
       lowTotal: 0,
@@ -48,7 +46,7 @@ export const estimateAssemblyOption = (order: {
   const total = sumLineItems(lineItems, "cost")
   return {
     assembly: order.assembly,
-    unavailableReason: null,
+    unavailableReasons: [],
     lineItems,
     total,
     lowTotal: sumLineItems(lineItems, "lowCost"),

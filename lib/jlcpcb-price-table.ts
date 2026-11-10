@@ -166,8 +166,17 @@ export const assemblyPrices = {
     smtPerJoint: 0.0017,
     /** "Yes (for Economic)" is the order form default */
     nitrogenReflow: 0.91,
-    /** Economic PCBA is offered up to this many layers */
-    maxLayers: 6,
+    /**
+     * published (jlcpcb.com/capabilities/pcb-assembly-capabilities): what
+     * Economic PCBA is offered for. Anything outside needs Standard PCBA.
+     */
+    layerCounts: [2, 4, 6],
+    minThicknessMm: 0.8,
+    maxThicknessMm: 1.6,
+    maxAssembledQuantity: 50,
+    smallestPackage: "0402",
+    /** Chip packages smaller than the smallest Economic PCBA places */
+    unsupportedPackagePattern: /^(0201|01005|008004)\b/,
   },
   /** published */
   standard: {

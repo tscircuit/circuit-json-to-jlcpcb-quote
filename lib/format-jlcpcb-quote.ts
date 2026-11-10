@@ -50,8 +50,12 @@ const formatAssemblyOption = (
   quote: JlcpcbQuote,
 ): string[] => {
   const title = `Assembly, ${option.assembly} PCBA (${quote.order.assembledQuantity} boards)`
-  if (option.unavailableReason) {
-    return ["", `${title}: not available`, `  ${option.unavailableReason}`]
+  if (option.unavailableReasons.length > 0) {
+    return [
+      "",
+      `${title}: not available, the board needs Standard PCBA`,
+      ...option.unavailableReasons.map((reason) => `  - ${reason}`),
+    ]
   }
   const isSelected = option.assembly === quote.order.assembly
   return [
