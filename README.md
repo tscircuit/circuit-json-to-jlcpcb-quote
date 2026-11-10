@@ -13,7 +13,7 @@ Releases are published to GitHub Packages and served from jscdn, so no registry
 configuration or token is needed:
 
 ```sh
-bun add https://jscdn.tscircuit.com/@tscircuit/circuit-json-to-jlcpcb-quote/0.0.2
+bun add https://jscdn.tscircuit.com/@tscircuit/circuit-json-to-jlcpcb-quote/0.0.2.tgz
 ```
 
 ## Usage
