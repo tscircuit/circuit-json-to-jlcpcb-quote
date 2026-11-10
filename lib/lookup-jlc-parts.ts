@@ -1,4 +1,6 @@
-import type { BomLine } from "./types"
+import { fetchFootprintJoints } from "./fetch-footprint-joints"
+import { fetchJlcpcbPart } from "./fetch-jlcpcb-part"
+import type { BomLine, JlcPart } from "./types"
 
 interface SearchResult {
   lcsc: number
@@ -14,30 +16,29 @@ interface SearchResult {
 const normalize = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "")
 
 /**
- * Resolve each BOM line to a JLCPCB part through jlcsearch, in order of
- * trust: explicit JLC part number, manufacturer part number, then
- * value + package for passives (preferring basic, in-stock, cheapest).
- * Requests run one at a time; jlcsearch rejects bursts.
+ * Resolve each BOM line to a JLCPCB part, in order of trust: explicit JLC
+ * part number, manufacturer part number, then value + package for passives
+ * (preferring basic, in-stock, cheapest). jlcsearch finds the part; JLCPCB's
+ * own parts library then supplies quantity price tiers, billed spares, stock
+ * and the preferred flag. Requests run one at a time; jlcsearch rejects bursts.
  */
 export const lookupJlcParts = async (params: {
   bom: BomLine[]
   baseUrl?: string
   fetch?: typeof fetch
+  partSource?: "jlcpcb" | "jlcsearch"
 }): Promise<string[]> => {
   const baseUrl = params.baseUrl ?? "https://jlcsearch.tscircuit.com"
   const fetchFn = params.fetch ?? fetch
+  const useJlcpcb = params.partSource !== "jlcsearch"
   const warnings: string[] = []
 
-  const search = (query: string) =>
-    get(`/api/search?q=${encodeURIComponent(query)}&limit=20`, "components")
-
   const get = async (path: string, key: string): Promise<SearchResult[]> => {
-    const url = `${baseUrl}${path}`
     let lastError = ""
     for (let attempt = 0; attempt < 7; attempt++) {
       if (attempt > 0) await new Promise((r) => setTimeout(r, 2500 * attempt))
       try {
-        const response = await fetchFn(url)
+        const response = await fetchFn(`${baseUrl}${path}`)
         const body: any = await response.json().catch(() => null)
         if (response.ok && Array.isArray(body?.[key])) {
           return body[key].map((c: any) => ({
@@ -52,62 +53,118 @@ export const lookupJlcParts = async (params: {
     }
     throw new Error(`jlcsearch ${path} failed: ${lastError}`)
   }
+  const search = (query: string) =>
+    get(`/api/search?q=${encodeURIComponent(query)}&limit=20`, "components")
 
-  for (const line of params.bom) {
-    const name = line.designators.join(",")
-    try {
-      let match: SearchResult | undefined
-      if (line.requestedJlcPartNumber) {
-        const wanted = Number(line.requestedJlcPartNumber.replace(/^C/i, ""))
-        match = (await search(`C${wanted}`)).find((c) => c.lcsc === wanted)
-        if (match) line.matchMethod = "jlc_part_number"
+  const fromJlcpcb = async (lcsc: number): Promise<JlcPart | undefined> =>
+    useJlcpcb
+      ? ((await fetchJlcpcbPart(lcsc, fetchFn).catch(() => null)) ?? undefined)
+      : undefined
+
+  /** Find the part on jlcsearch when JLCPCB could not be asked directly. */
+  const findOnJlcsearch = async (
+    line: BomLine,
+    name: string,
+  ): Promise<SearchResult | undefined> => {
+    if (line.requestedJlcPartNumber) {
+      const wanted = Number(line.requestedJlcPartNumber.replace(/^C/i, ""))
+      const match = (await search(`C${wanted}`)).find((c) => c.lcsc === wanted)
+      if (match) {
+        line.matchMethod = "jlc_part_number"
+        return match
       }
-      if (!match && line.manufacturerPartNumber) {
-        const wanted = normalize(line.manufacturerPartNumber)
-        match = pickBest(
-          (await search(line.manufacturerPartNumber)).filter(
-            (c) => normalize(c.mfr) === wanted,
-          ),
-        )
-        if (match) line.matchMethod = "manufacturer_part_number"
+    }
+    if (line.manufacturerPartNumber) {
+      const wanted = normalize(line.manufacturerPartNumber)
+      const match = pickBest(
+        (await search(line.manufacturerPartNumber)).filter(
+          (c) => normalize(c.mfr) === wanted,
+        ),
+      )
+      if (match) {
+        line.matchMethod = "manufacturer_part_number"
+        return match
       }
-      if (!match && line.valueLookup) {
-        const { category, params: query } = line.valueLookup
-        const queryString = new URLSearchParams(query).toString()
-        // Basic parts carry no loading fee, so look for one first.
-        for (const filter of ["&is_basic=true", ""]) {
-          const candidates = await get(
+    }
+    if (line.valueLookup) {
+      const { category, params: query } = line.valueLookup
+      const queryString = new URLSearchParams(query).toString()
+      // Basic parts carry no loading fee, so look for one first.
+      for (const filter of ["&is_basic=true", ""]) {
+        const match = pickBest(
+          await get(
             `/${category}/list.json?${queryString}${filter}`,
             category,
-          ).catch(() => [])
-          match = pickBest(candidates)
-          if (match) break
-        }
+          ).catch(() => []),
+        )
         if (match) {
           line.matchMethod = "value"
           warnings.push(
             `${name}: no part number given, matched ${line.value} to C${match.lcsc} (${match.mfr}) by value`,
           )
+          return match
         }
       }
-      if (!match) {
-        warnings.push(
-          `${name}: no JLCPCB part found${line.requestedJlcPartNumber ? ` for ${line.requestedJlcPartNumber}` : ""}; left out of assembly and parts cost`,
+    }
+    return undefined
+  }
+
+  for (const line of params.bom) {
+    const name = line.designators.join(",")
+    try {
+      let part: JlcPart | undefined
+      if (line.requestedJlcPartNumber) {
+        part = await fromJlcpcb(
+          Number(line.requestedJlcPartNumber.replace(/^C/i, "")),
         )
-        continue
+        if (part) line.matchMethod = "jlc_part_number"
       }
-      line.part = {
-        lcsc: `C${match.lcsc}`,
-        mfr: match.mfr,
-        package: match.package,
-        description: match.description,
-        isBasic: Boolean(match.is_basic),
-        isPreferred: Boolean(match.is_preferred),
-        unitPrice: Number(match.price) || 0,
-        stock: match.stock,
+      if (!part) {
+        const match = await findOnJlcsearch(line, name)
+        if (!match) {
+          warnings.push(
+            `${name}: no JLCPCB part found${line.requestedJlcPartNumber ? ` for ${line.requestedJlcPartNumber}` : ""}; left out of assembly and parts cost`,
+          )
+          continue
+        }
+        part = await fromJlcpcb(match.lcsc)
+        if (!part) {
+          part = {
+            lcsc: `C${match.lcsc}`,
+            mfr: match.mfr,
+            package: match.package,
+            description: match.description,
+            isBasic: Boolean(match.is_basic),
+            isPreferred: Boolean(match.is_preferred),
+            unitPrice: Number(match.price) || 0,
+            stock: match.stock,
+            source: "jlcsearch",
+          }
+          if (useJlcpcb) {
+            warnings.push(
+              `${name}: ${part.lcsc} priced from jlcsearch (single-piece price, estimated spares) because JLCPCB's parts library did not answer`,
+            )
+          }
+        }
       }
-      if (match.stock === 0) {
-        warnings.push(`${name}: C${match.lcsc} is out of stock at JLCPCB`)
+      line.part = part
+
+      if (line.smtJointsPerPart + line.throughHoleJointsPerPart === 0) {
+        const joints = await fetchFootprintJoints(Number(part.lcsc.slice(1)), {
+          baseUrl,
+          fetch: fetchFn,
+        })
+        if (joints) {
+          line.smtJointsPerPart = joints.smt
+          line.throughHoleJointsPerPart = joints.throughHole
+        } else {
+          warnings.push(
+            `${name}: no footprint found for ${part.lcsc}; its solder joints are not counted`,
+          )
+        }
+      }
+      if (part.stock === 0) {
+        warnings.push(`${name}: ${part.lcsc} is out of stock at JLCPCB`)
       }
     } catch (error) {
       warnings.push(

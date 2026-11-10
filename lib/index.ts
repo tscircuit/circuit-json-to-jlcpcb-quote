@@ -1,5 +1,7 @@
 export { convertCircuitJsonToJlcpcbQuote } from "./convert-circuit-json-to-jlcpcb-quote"
 export { estimateJlcpcbQuote } from "./estimate-jlcpcb-quote"
+export { fetchFootprintJoints } from "./fetch-footprint-joints"
+export { fetchJlcpcbPart } from "./fetch-jlcpcb-part"
 export { extractBoardFeatures } from "./extract-board-features"
 export { formatJlcpcbQuote } from "./format-jlcpcb-quote"
 export { getBomLines } from "./get-bom-lines"

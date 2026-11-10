@@ -153,8 +153,8 @@ export const getQuoteInputsFromFabricationFiles = (
 ): {
   features: BoardFeatures
   bom: BomLine[]
-  jointsPerBoard: { smt: number; throughHole: number }
-  platedComponentHoleCount: number
+  /** SMT joints measured as paste openings on the populated sides */
+  jointsPerBoard: { smt: number }
   warnings: string[]
 } => {
   const warnings: string[] = []
@@ -280,8 +280,7 @@ export const getQuoteInputsFromFabricationFiles = (
       sidesWithComponents: [...sides].sort().reverse() as ("top" | "bottom")[],
     },
     bom: [...lines.values()],
-    jointsPerBoard: { smt, throughHole: 0 },
-    platedComponentHoleCount: componentHoles.length,
+    jointsPerBoard: { smt },
     warnings,
   }
 }

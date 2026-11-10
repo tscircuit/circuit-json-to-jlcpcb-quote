@@ -90,6 +90,12 @@ const circuitJson: any[] = [
 ]
 
 const fakeFetch = (async (url: string) => {
+  if (url.includes("jlcpcb.com")) {
+    // JLCPCB's parts library has no such part: fall back to jlcsearch.
+    return new Response(
+      JSON.stringify({ code: 200, data: { componentPageInfo: { list: [] } } }),
+    )
+  }
   const query = decodeURIComponent(new URL(url).searchParams.get("q") ?? "")
   const catalog = [
     {

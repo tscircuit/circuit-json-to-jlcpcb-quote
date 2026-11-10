@@ -34,17 +34,6 @@ const assembly = flag("assembly") as any
 if (assembly !== "none") {
   inputs.warnings.push(...(await lookupJlcParts({ bom: inputs.bom })))
 }
-// JLCPCB lists through-hole parts with the package "Plugin". The files do not
-// say which holes belong to them, so every plated component hole is counted.
-const throughHoleParts = inputs.bom.filter((line) =>
-  /plugin|through.?hole/i.test(line.part?.package ?? ""),
-)
-if (throughHoleParts.length > 0 && inputs.platedComponentHoleCount > 0) {
-  inputs.jointsPerBoard.throughHole = inputs.platedComponentHoleCount
-  inputs.warnings.push(
-    `Through-hole parts (${throughHoleParts.flatMap((line) => line.designators).join(", ")}) are hand-soldered; all ${inputs.platedComponentHoleCount} plated component holes are counted as joints, which is an upper bound`,
-  )
-}
 const quote = estimateJlcpcbQuote({
   features: inputs.features,
   bom: assembly === "none" ? [] : inputs.bom,

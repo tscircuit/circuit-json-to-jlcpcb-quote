@@ -21,6 +21,7 @@ export const convertCircuitJsonToJlcpcbQuote = async (
         bom,
         baseUrl: options.jlcsearchBaseUrl,
         fetch: options.fetch,
+        partSource: options.partSource,
       })),
     )
   }

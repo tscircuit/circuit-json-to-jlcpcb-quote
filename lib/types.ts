@@ -23,8 +23,13 @@ export interface JlcpcbQuoteOptions {
   nitrogenReflow?: boolean
   /** Multiplies published fees, for exchange-rate drift. Default 1. */
   priceAdjustmentFactor?: number
-  /** Set false to skip jlcsearch lookups (parts priced at 0). */
+  /** Set false to skip part lookups (parts priced at 0). */
   lookupParts?: boolean
+  /**
+   * Where prices come from. "jlcpcb" (default) reads JLCPCB's parts library
+   * for quantity price tiers and billed spares, falling back to jlcsearch.
+   */
+  partSource?: "jlcpcb" | "jlcsearch"
   jlcsearchBaseUrl?: string
   fetch?: typeof fetch
 }
@@ -44,6 +49,25 @@ export interface BoardFeatures {
   sidesWithComponents: ("top" | "bottom")[]
 }
 
+export interface JlcPart {
+  lcsc: string
+  mfr: string
+  package: string
+  description: string
+  isBasic: boolean
+  isPreferred: boolean
+  /** Price for one piece */
+  unitPrice: number
+  stock: number | null
+  /** Quantity price breaks, ascending. Only from JLCPCB's parts library. */
+  priceTiers?: { fromQuantity: number; unitPrice: number }[]
+  /** Spares JLCPCB bills on top of the quantity used (extended parts). */
+  spareQuantity?: number
+  /** Smallest quantity JLCPCB bills (extended parts). */
+  minimumQuantity?: number
+  source?: "jlcpcb" | "jlcsearch"
+}
+
 export interface BomLine {
   designators: string[]
   /** Per board */
@@ -60,16 +84,7 @@ export interface BomLine {
     params: Record<string, string>
   }
   /** Filled by the jlcsearch lookup */
-  part?: {
-    lcsc: string
-    mfr: string
-    package: string
-    description: string
-    isBasic: boolean
-    isPreferred: boolean
-    unitPrice: number
-    stock: number | null
-  }
+  part?: JlcPart
   matchMethod?: "jlc_part_number" | "manufacturer_part_number" | "value"
 }
 

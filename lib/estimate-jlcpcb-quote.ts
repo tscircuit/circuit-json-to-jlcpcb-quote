@@ -26,7 +26,7 @@ export const estimateJlcpcbQuote = (params: {
   options?: JlcpcbQuoteOptions
   warnings?: string[]
   /** Joint counts measured from the layout, when the BOM lines carry none. */
-  jointsPerBoard?: { smt: number; throughHole: number }
+  jointsPerBoard?: { smt?: number; throughHole?: number }
 }): JlcpcbQuote => {
   const { features } = params
   const options = params.options ?? {}
@@ -236,6 +236,10 @@ export const estimateJlcpcbQuote = (params: {
 
   if (assembly !== "none") {
     const p = assemblyPrices
+    // Parts with plated holes and no SMT pads are soldered by hand: they are
+    // billed per manual joint and are not loaded on a feeder.
+    const isHandSoldered = (line: BomLine) =>
+      line.throughHoleJointsPerPart > 0 && line.smtJointsPerPart === 0
     const smtJoints =
       assembledQuantity *
       (params.jointsPerBoard?.smt ??
@@ -243,7 +247,10 @@ export const estimateJlcpcbQuote = (params: {
     const thtJoints =
       assembledQuantity *
       (params.jointsPerBoard?.throughHole ??
-        sum(placed, (line) => line.quantity * line.throughHoleJointsPerPart))
+        sum(
+          placed.filter(isHandSoldered),
+          (line) => line.quantity * line.throughHoleJointsPerPart,
+        ))
 
     if (assembly === "economic") {
       add("assembly", "setup", "Setup fee", p.economic.setup * factor, "quoted")
@@ -255,7 +262,10 @@ export const estimateJlcpcbQuote = (params: {
         "quoted",
       )
       const extended = placed.filter(
-        (line) => !line.part!.isBasic && !line.part!.isPreferred,
+        (line) =>
+          !line.part!.isBasic &&
+          !line.part!.isPreferred &&
+          !isHandSoldered(line),
       )
       const loading =
         extended.length * p.economic.feederLoadingPerExtendedPart * factor
@@ -265,10 +275,12 @@ export const estimateJlcpcbQuote = (params: {
         `Extended parts loading (${extended.length} of ${placed.length} unique parts)`,
         loading,
         "quoted",
-        {
-          low: loading * 0.9,
-          note: "jlcsearch misses some parts JLCPCB exempts as preferred",
-        },
+        placed.every((line) => line.part!.source === "jlcpcb")
+          ? {}
+          : {
+              low: loading * 0.9,
+              note: "jlcsearch misses some parts JLCPCB exempts as preferred",
+            },
       )
       if (options.nitrogenReflow !== false) {
         add(
@@ -360,33 +372,55 @@ export const estimateJlcpcbQuote = (params: {
       )
     }
 
-    // Parts: basic parts are billed exactly as used. Extended parts carry
-    // spares and a minimum of about 20 for the cheapest ones (fitted to the
-    // quoted BOM of the dual-rp2350 board).
+    // Parts. Basic parts are billed exactly as used. Extended parts are
+    // billed with JLCPCB's spares and minimum quantity, at the price break
+    // for the billed quantity. Without those fields (jlcsearch-only data) the
+    // spares are estimated from the unit price.
     let partsCost = 0
     let partsWithoutSpares = 0
+    let estimatedLines = 0
     for (const line of placed) {
-      const { unitPrice, isBasic } = line.part!
+      const part = line.part!
       const used = line.quantity * assembledQuantity
       let billed = used
-      if (!isBasic) {
-        if (unitPrice < 0.03) billed = Math.max(20, used + 6)
-        else if (unitPrice < 0.2) billed = used + 4
+      if (!part.isBasic) {
+        if (part.spareQuantity !== undefined) {
+          billed = Math.max(
+            used + part.spareQuantity,
+            part.minimumQuantity ?? 0,
+          )
+        } else if (part.unitPrice < 0.03) {
+          billed = Math.max(20, used + 6)
+        } else if (part.unitPrice < 0.2) {
+          billed = used + 4
+        }
       }
+      const tier = part.priceTiers?.findLast(
+        (candidate) => billed >= candidate.fromQuantity,
+      )
+      const unitPrice = tier?.unitPrice ?? part.unitPrice
+      if (!part.priceTiers?.length) estimatedLines++
       partsCost += billed * unitPrice
       partsWithoutSpares += used * unitPrice
+      if (part.stock !== null && part.stock < billed) {
+        warnings.push(
+          `${line.designators.join(",")}: ${part.lcsc} has ${part.stock} in stock at JLCPCB, ${billed} needed`,
+        )
+      }
     }
     add(
       "components",
       "components",
       `Parts for ${assembledQuantity} boards (${placed.length} unique)`,
       partsCost,
-      "calibrated",
-      {
-        low: partsWithoutSpares * 0.9,
-        high: partsCost * 1.1,
-        note: "jlcsearch prices; JLCPCB's live price can differ per part",
-      },
+      estimatedLines === 0 ? "quoted" : "calibrated",
+      estimatedLines === 0
+        ? {}
+        : {
+            low: partsWithoutSpares * 0.9,
+            high: partsCost * 1.1,
+            note: `${estimatedLines} lines priced without JLCPCB quantity price breaks`,
+          },
     )
   }
 
