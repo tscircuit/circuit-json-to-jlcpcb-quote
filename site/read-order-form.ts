@@ -50,7 +50,6 @@ const readChoice = <Choice extends string>(
 export const readOrderForm = (
   form: HTMLFormElement,
 ): { options: JlcpcbQuoteOptions; board: BoardOrderForm } => {
-  const salesTaxPercent = readOptionalNumber(form, "salesTaxPercent")
   const excludeField = getField(form, "excludeUnresolved")
   return {
     options: {
@@ -64,8 +63,6 @@ export const readOrderForm = (
       carrier: readChoice({ form, name: "carrier" }, CARRIER_CHOICES),
       shippingCost: readOptionalNumber(form, "shippingCost"),
       shippingWeightKg: readOptionalNumber(form, "shippingWeightKg"),
-      salesTaxRate:
-        salesTaxPercent === undefined ? undefined : salesTaxPercent / 100,
       unresolvedParts:
         excludeField instanceof HTMLInputElement && excludeField.checked
           ? "exclude"

@@ -34,11 +34,14 @@ export const resolveBomLine = async (
     }
   }
 
-  const part = await fetchJlcsearchPart(lcsc, ctx)
+  // Both only need the part number, so they are fetched together.
+  const [part, footprintJoints] = await Promise.all([
+    fetchJlcsearchPart(lcsc, ctx),
+    fetchFootprintJoints(lcsc, ctx),
+  ])
   if (!part) {
     return { status: "unresolved", line, reason: `${lcsc} is not on jlcsearch` }
   }
-  const footprintJoints = await fetchFootprintJoints(lcsc, ctx)
   if (!footprintJoints) {
     return {
       status: "unresolved",

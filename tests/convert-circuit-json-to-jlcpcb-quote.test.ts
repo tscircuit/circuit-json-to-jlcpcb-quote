@@ -119,6 +119,7 @@ test("quotes Circuit JSON through its fabrication files", async () => {
     Object.fromEntries(quote.lineItems.map((item) => [item.key, item.cost])),
   ).toEqual({
     pcb_base: 7,
+    lead_free_hasl: 5.3, // the default finish
     confirm_production_file: 1.05,
     deburring: 0.1,
     setup: 8.24,
@@ -483,6 +484,15 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
         {
           "category": "fabrication",
           "confidence": "quoted",
+          "cost": 5.3,
+          "highCost": 5.3,
+          "key": "lead_free_hasl",
+          "label": "Lead-free HASL",
+          "lowCost": 5.3,
+        },
+        {
+          "category": "fabrication",
+          "confidence": "quoted",
           "cost": 1.05,
           "highCost": 1.05,
           "key": "confirm_production_file",
@@ -490,8 +500,8 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
           "lowCost": 1.05,
         },
       ],
-      "fabricationPerBoard": 1.61,
-      "fabricationTotal": 8.05,
+      "fabricationPerBoard": 2.67,
+      "fabricationTotal": 13.35,
       "features": {
         "heightMm": 25,
         "holeCount": 4,
@@ -508,9 +518,9 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
         "viaCount": 0,
         "widthMm": 30,
       },
-      "grandTotal": 85.49,
-      "highGrandTotal": 101.34,
-      "highTotal": 28.48,
+      "grandTotal": 93.11,
+      "highGrandTotal": 108.94,
+      "highTotal": 33.78,
       "lineItems": [
         {
           "category": "fabrication",
@@ -520,6 +530,15 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
           "key": "pcb_base",
           "label": "4-layer FR4, 5 pcs, special offer",
           "lowCost": 7,
+        },
+        {
+          "category": "fabrication",
+          "confidence": "quoted",
+          "cost": 5.3,
+          "highCost": 5.3,
+          "key": "lead_free_hasl",
+          "label": "Lead-free HASL",
+          "lowCost": 5.3,
         },
         {
           "category": "fabrication",
@@ -606,22 +625,22 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
           "note": "1 extended parts priced at the single-piece price with estimated spares",
         },
       ],
-      "lowGrandTotal": 73.44,
-      "lowTotal": 27.48,
+      "lowGrandTotal": 81.05,
+      "lowTotal": 32.78,
       "order": {
         "assembledQuantity": 5,
         "assembly": "economic",
         "carrier": "dhl",
         "quantity": 5,
-        "surfaceFinish": "hasl_leaded",
+        "surfaceFinish": "hasl_lead_free",
       },
       "priceTableVersion": "2026-11-10",
       "shippingOptions": [
         {
           "carrier": "dhl",
-          "grandTotal": 85.49,
-          "highGrandTotal": 101.34,
-          "highTotal": 72.86,
+          "grandTotal": 93.11,
+          "highGrandTotal": 108.94,
+          "highTotal": 75.16,
           "lineItems": [
             {
               "category": "shipping_and_taxes",
@@ -636,11 +655,11 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
             {
               "category": "shipping_and_taxes",
               "confidence": "calibrated",
-              "cost": 9.79,
-              "highCost": 9.97,
+              "cost": 11.65,
+              "highCost": 11.82,
               "key": "import_taxes",
               "label": "Import duties and taxes (35% of merchandise)",
-              "lowCost": 9.62,
+              "lowCost": 11.47,
             },
             {
               "category": "shipping_and_taxes",
@@ -654,24 +673,24 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
             {
               "category": "shipping_and_taxes",
               "confidence": "calibrated",
-              "cost": 2.41,
-              "highCost": 2.46,
+              "cost": 2.87,
+              "highCost": 2.91,
               "key": "sales_tax",
-              "label": "Sales tax (8.63% of merchandise)",
-              "lowCost": 2.37,
+              "label": "Sales tax (8.625% of merchandise)",
+              "lowCost": 2.83,
             },
           ],
-          "lowGrandTotal": 73.44,
-          "lowTotal": 45.96,
+          "lowGrandTotal": 81.05,
+          "lowTotal": 48.27,
           "service": "DHL Express (DDP)",
-          "total": 57.51,
+          "total": 59.83,
           "weightKg": 0.919,
         },
         {
           "carrier": "ups",
-          "grandTotal": 106.38,
-          "highGrandTotal": 131.81,
-          "highTotal": 103.33,
+          "grandTotal": 114,
+          "highGrandTotal": 139.41,
+          "highTotal": 105.63,
           "lineItems": [
             {
               "category": "shipping_and_taxes",
@@ -686,11 +705,11 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
             {
               "category": "shipping_and_taxes",
               "confidence": "calibrated",
-              "cost": 9.79,
-              "highCost": 9.97,
+              "cost": 11.65,
+              "highCost": 11.82,
               "key": "import_taxes",
               "label": "Import duties and taxes (35% of merchandise)",
-              "lowCost": 9.62,
+              "lowCost": 11.47,
             },
             {
               "category": "shipping_and_taxes",
@@ -704,21 +723,21 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
             {
               "category": "shipping_and_taxes",
               "confidence": "calibrated",
-              "cost": 2.41,
-              "highCost": 2.46,
+              "cost": 2.87,
+              "highCost": 2.91,
               "key": "sales_tax",
-              "label": "Sales tax (8.63% of merchandise)",
-              "lowCost": 2.37,
+              "label": "Sales tax (8.625% of merchandise)",
+              "lowCost": 2.83,
             },
           ],
-          "lowGrandTotal": 87.14,
-          "lowTotal": 59.66,
+          "lowGrandTotal": 94.75,
+          "lowTotal": 61.97,
           "service": "UPS Express Saver (DDP)",
-          "total": 78.4,
+          "total": 80.72,
           "weightKg": 0.919,
         },
       ],
-      "total": 27.98,
+      "total": 33.28,
       "warnings": [
         "R1,R2: no part number given, matched "10k" to C25744 (0402WGF1002TCE)",
         "R3: no JLCPCB part with that rating and package; left out of assembly and parts cost",
@@ -740,5 +759,5 @@ test("bare-board quote needs no part lookups", async () => {
     },
   })
   expect(quote.assemblyTotal).toBe(0)
-  expect(quote.total).toBe(8.15)
+  expect(quote.total).toBe(13.45)
 })
