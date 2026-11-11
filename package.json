@@ -23,15 +23,25 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "format": "biome format --write .",
-    "format:check": "biome format ."
+    "format:check": "biome format .",
+    "build:site": "bun scripts/build-site.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",
     "@types/bun": "latest",
-    "circuit-json": "^0.0.548"
+    "@types/papaparse": "^5.5.2",
+    "circuit-json": "^0.0.548",
+    "fflate": "^0.8.3"
   },
   "peerDependencies": {
     "circuit-json": "*",
     "typescript": ">=5"
+  },
+  "dependencies": {
+    "circuit-json-to-bom-csv": "0.0.26",
+    "circuit-json-to-gerber": "0.0.122",
+    "circuit-json-to-pnp-csv": "0.0.20",
+    "papaparse": "^5.7.0",
+    "zod": "3"
   }
 }

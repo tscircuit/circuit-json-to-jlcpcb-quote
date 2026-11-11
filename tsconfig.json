@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
@@ -16,7 +16,8 @@
     "noEmit": true,
     "paths": {
       "lib/*": ["./lib/*"],
-      "tests/*": ["./tests/*"]
+      "tests/*": ["./tests/*"],
+      "site/*": ["./site/*"]
     },
 
     // Best practices
