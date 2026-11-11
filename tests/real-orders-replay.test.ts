@@ -31,6 +31,7 @@ test("Y45: 4-layer 70x70, 0.15/0.3mm vias, standard PCBA", () => {
       quantity: 5,
       assembledQuantity: 2,
       assembly: "standard",
+      surfaceFinish: "hasl_leaded",
       confirmPartsPlacement: false,
     },
   })
@@ -229,7 +230,7 @@ test("Economic PCBA is refused outside its published limits", () => {
   const quote = estimateJlcpcbQuote({
     features: createBoardFeatures({ widthMm: 150, numLayers: 8 }),
     bom: [createPricedBomLine()],
-    options: { assembledQuantity: 60 },
+    options: { assembledQuantity: 60, surfaceFinish: "hasl_leaded" },
   })
   expect(quote.assemblyOptions[0]?.unavailableReasons).toEqual([
     "Economic PCBA is offered for 2, 4, 6-layer boards, not 8",

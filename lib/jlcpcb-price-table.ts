@@ -23,7 +23,7 @@ export const JLCPCB_PRICE_TABLE_VERSION = "2026-11-10"
 export const orderDefaults = {
   quantity: 5,
   assembledQuantity: 2,
-  surfaceFinish: "hasl_leaded",
+  surfaceFinish: "hasl_lead_free",
   /** The cheaper of the two on every quote seen */
   carrier: "dhl",
   jlcsearchBaseUrl: "https://jlcsearch.tscircuit.com",
@@ -290,8 +290,15 @@ export const fabricationFileRules = {
   viaPadPositionToleranceMm: 0.002,
 }
 
-/** Part lookups are retried because jlcsearch rejects bursts */
+/**
+ * Part lookups run a few at a time; jlcsearch answers most bursts in under a
+ * second. Its database sometimes reports overload (HTTP 500, "too many
+ * resources consumed within a 10 second window") whatever the concurrency, so
+ * overload answers are retried in short, growing steps that together span
+ * about 10 seconds, instead of long waits.
+ */
 export const lookupRetry = {
-  attempts: 5,
-  delayMsPerAttempt: 2000,
+  concurrentLookups: 8,
+  attempts: 7,
+  delayMsPerAttempt: 500,
 }

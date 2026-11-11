@@ -51,7 +51,7 @@ export interface JlcpcbQuoteOptions {
   assembledQuantity?: number
   /** "auto" picks economic when the board allows it. Default "auto". */
   assembly?: AssemblyType | "auto"
-  /** Rigid boards only. Default "hasl_leaded". */
+  /** Rigid boards only. Default "hasl_lead_free". */
   surfaceFinish?: SurfaceFinish
   /** Standard PCBA only. "auto" inspects BGA/LGA/QFN parts. Default "auto". */
   xrayInspection?: boolean | "auto"
