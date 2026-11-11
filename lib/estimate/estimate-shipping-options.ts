@@ -10,6 +10,9 @@ import { sumLineItems } from "./estimate-assembly-option"
 
 const CARRIERS: ShippingCarrier[] = ["dhl", "ups"]
 
+/** 0.08625 -> "8.625%", 0.35 -> "35%" */
+const formatPercent = (rate: number) => `${Number((rate * 100).toFixed(3))}%`
+
 interface ShippedOrder {
   features: BoardFeatures
   quantity: number
@@ -83,7 +86,7 @@ const createMerchandiseTax = (tax: {
   createQuoteLineItem({
     category: "shipping_and_taxes",
     key: tax.key,
-    label: `${tax.label} (${roundToCents(tax.rate * 100)}% of merchandise)`,
+    label: `${tax.label} (${formatPercent(tax.rate)} of merchandise)`,
     cost: tax.merchandise.total * tax.rate,
     lowCost: tax.merchandise.lowTotal * tax.rate,
     highCost: tax.merchandise.highTotal * tax.rate,
