@@ -4,9 +4,14 @@ import {
   estimateAssemblyOption,
   sumLineItems,
 } from "./estimate/estimate-assembly-option"
+import { buildQuoteSummary } from "./estimate/build-quote-summary"
 import { estimateBarePcb } from "./estimate/estimate-bare-pcb"
 import { estimateShippingOptions } from "./estimate/estimate-shipping-options"
-import { selectAssemblyType } from "./estimate/select-assembly-type"
+import { getOrderQuantities } from "./estimate/get-order-quantities"
+import {
+  getEconomicUnavailableReasons,
+  selectAssemblyType,
+} from "./estimate/select-assembly-type"
 import {
   JLCPCB_PRICE_TABLE_VERSION,
   landedCostPrices,
@@ -39,7 +44,8 @@ export const estimateJlcpcbQuote = (order: {
 }): JlcpcbQuote => {
   const { features, bom } = order
   const options = order.options ?? {}
-  const quantity = options.quantity ?? orderDefaults.quantity
+  const { quantity, assembledQuantity: requestedAssembledQuantity } =
+    getOrderQuantities(options)
   const surfaceFinish = options.surfaceFinish ?? orderDefaults.surfaceFinish
 
   const fabrication = estimateBarePcb({
@@ -54,8 +60,6 @@ export const estimateJlcpcbQuote = (order: {
     boardCost: fabrication.boardCost,
   })
 
-  const requestedAssembledQuantity =
-    options.assembledQuantity ?? orderDefaults.assembledQuantity
   const assembly = selectAssemblyType({
     features,
     bom,
@@ -110,6 +114,22 @@ export const estimateJlcpcbQuote = (order: {
     priceTableVersion: JLCPCB_PRICE_TABLE_VERSION,
     order: { quantity, assembledQuantity, assembly, surfaceFinish, carrier },
     features,
+    summary: buildQuoteSummary({
+      quantity,
+      assembledQuantity,
+      fabricationLineItems: fabrication.lineItems,
+      additionalFees: review.additionalFees,
+      selectedAssembly: selectedOption,
+      economicUnavailableReasons:
+        assembly === "none"
+          ? []
+          : getEconomicUnavailableReasons({
+              features,
+              bom,
+              assembledQuantity,
+            }),
+      selectedShipping,
+    }),
     fabricationLineItems: fabrication.lineItems,
     fabricationTotal,
     fabricationPerBoard: roundToCents(fabricationTotal / quantity),

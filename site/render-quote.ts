@@ -4,6 +4,7 @@ import type {
   JlcpcbQuote,
   PricedBomLine,
   QuoteLineItem,
+  QuoteSummaryRow,
   ShippingOption,
 } from "../lib/index"
 import { escapeHtml } from "./escape-html"
@@ -116,7 +117,7 @@ const renderBom = (quote: JlcpcbQuote) => {
           )
           .join("")}</ul>`
   return `
-    <details class="card">
+    <details class="details-section">
       <summary>Bill of materials: ${quote.bom.length} priced, ${quote.excludedBomLines.length} left out</summary>
       ${excluded}
       <table class="bom">
@@ -126,47 +127,85 @@ const renderBom = (quote: JlcpcbQuote) => {
     </details>`
 }
 
-const renderSummary = (quote: JlcpcbQuote) => {
+const PER_BOARD_UNITS: Record<QuoteSummaryRow["perBoardUnit"], string> = {
+  pcb: "per PCB",
+  assembled_board: "per assembled board",
+}
+
+const renderSummaryRow = (row: QuoteSummaryRow) => `
+  <tr class="${row.key === "grand_total" ? "grand-total" : ""}">
+    <th scope="row">
+      ${escapeHtml(row.label)}
+      ${row.note ? `<div class="note">${escapeHtml(row.note)}</div>` : ""}
+    </th>
+    <td class="amount">${formatUsd(row.total)}${formatRange({ low: row.lowTotal, high: row.highTotal, exact: row.total })}</td>
+    <td class="amount">${formatUsd(row.perBoard)}<span class="unit">${PER_BOARD_UNITS[row.perBoardUnit]}</span></td>
+  </tr>`
+
+const renderBoardLine = (quote: JlcpcbQuote) => {
   const { features, order } = quote
   const assembly =
     order.assembly === "none"
       ? "no assembly"
-      : `${order.assembledQuantity} assembled, ${order.assembly} PCBA`
+      : `${order.assembledQuantity} assembled with ${order.assembly === "economic" ? "Economic" : "Standard"} PCBA`
+  const bare = order.quantity - order.assembledQuantity
   return `
-    <section class="summary">
-      <div class="board">
-        <div class="board-name">${features.widthMm} × ${features.heightMm} mm · ${features.numLayers} layers · ${features.thicknessMm} mm ${features.material}</div>
-        <div class="muted">${order.quantity} PCBs, ${assembly} · ${features.smallestVia ? `${features.viaCount} vias, smallest ${features.smallestVia.holeDiameterMm}/${features.smallestVia.padDiameterMm} mm` : "no vias"}</div>
-      </div>
-      <div class="totals">
-        <div class="total"><span>Merchandise</span><strong>${formatUsd(quote.total)}</strong><small>${formatUsd(quote.lowTotal)} to ${formatUsd(quote.highTotal)}</small></div>
-        <div class="total grand"><span>Grand total, ${order.carrier.toUpperCase()}</span><strong>${formatUsd(quote.grandTotal)}</strong><small>${formatUsd(quote.lowGrandTotal)} to ${formatUsd(quote.highGrandTotal)}</small></div>
-      </div>
-    </section>`
+    <div class="board-line">
+      <strong>${features.widthMm} × ${features.heightMm} mm, ${features.numLayers} layers, ${features.thicknessMm} mm ${features.material}</strong>
+      <span class="muted">${order.quantity} PCBs, ${assembly}${order.assembly !== "none" && bare > 0 ? `, ${bare} left bare` : ""}, shipped by ${order.carrier.toUpperCase()}</span>
+    </div>`
 }
+
+const renderSummary = (quote: JlcpcbQuote) => `
+  <section class="card summary-card">
+    ${renderBoardLine(quote)}
+    <table class="summary-table">
+      <thead><tr><th></th><th class="amount">Total</th><th class="amount">Per board</th></tr></thead>
+      <tbody>${quote.summary.rows.map(renderSummaryRow).join("")}</tbody>
+      <tfoot>${renderSummaryRow(quote.summary.grandTotal)}</tfoot>
+    </table>
+    <p class="muted footnote">Per assembled board includes everything in the order, bare extra PCBs too. Grey ranges show how far an estimate may be off.</p>
+  </section>`
+
+const renderDetails = (section: { title: string; body: string }) => `
+  <details class="details-section">
+    <summary>${section.title}</summary>
+    <div class="details-body">${section.body}</div>
+  </details>`
+
+const renderWarnings = (quote: JlcpcbQuote) =>
+  quote.warnings.length === 0
+    ? ""
+    : `<section class="card warnings"><h3>Warnings</h3><ul>${quote.warnings
+        .map((warning) => `<li>${escapeHtml(warning)}</li>`)
+        .join("")}</ul></section>`
 
 /** The whole quote as HTML. Every outside string is escaped. */
 export const renderQuote = (quote: JlcpcbQuote) => `
   ${renderSummary(quote)}
-  ${renderCard({
-    title: `Board fabrication (${quote.order.quantity} boards)`,
-    total: formatUsd(quote.fabricationTotal),
-    subtitle: `${formatUsd(quote.fabricationPerBoard)} per board`,
+  ${quote.additionalFees.length > 0 ? renderAdditionalFees(quote) : ""}
+  ${renderWarnings(quote)}
+  <h2>Details</h2>
+  ${renderDetails({
+    title: `Board fabrication: ${formatUsd(quote.fabricationTotal)}`,
     body: renderLineItems(quote.fabricationLineItems),
   })}
-  ${renderAdditionalFees(quote)}
   ${
     quote.assemblyOptions.length > 0
-      ? `<h2>Assembly</h2><div class="columns">${quote.assemblyOptions.map((option) => renderAssemblyOption(option, quote)).join("")}</div>`
+      ? renderDetails({
+          title: "Assembly: Economic and Standard PCBA compared",
+          body: `<div class="columns">${quote.assemblyOptions
+            .map((option) => renderAssemblyOption(option, quote))
+            .join("")}</div>`,
+        })
       : ""
   }
-  <h2>Shipping and taxes</h2>
-  <div class="columns">${quote.shippingOptions.map((option) => renderShippingOption(option, quote)).join("")}</div>
+  ${renderDetails({
+    title: "Shipping and taxes: DHL and UPS compared",
+    body: `<div class="columns">${quote.shippingOptions
+      .map((option) => renderShippingOption(option, quote))
+      .join("")}</div>`,
+  })}
   ${renderBom(quote)}
-  ${
-    quote.warnings.length > 0
-      ? `<section class="card warnings"><h3>Warnings</h3><ul>${quote.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}</ul></section>`
-      : ""
-  }
   <p class="muted footnote">Prices as of ${escapeHtml(quote.priceTableVersion)}, USD. Confidence: <em>published</em> JLCPCB help pages, <em>quoted</em> a live JLCPCB quote, <em>calibrated</em> fitted to real orders, <em>heuristic</em> an approximation.</p>
 `

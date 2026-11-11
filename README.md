@@ -35,6 +35,13 @@ const quote = await convertCircuitJsonToJlcpcbQuote({
 console.log(formatJlcpcbQuote(quote))
 ```
 
+`quote.summary` lists every expense on one table, each with its total and
+per-board price, and ends with a grand total that includes shipping and
+taxes. Fabrication is per PCB; everything else is per assembled board (or per
+PCB without assembly). The text output and the quote page show it first.
+
+Assembled boards may be fewer than PCBs (the rest stay bare), never more.
+
 The quote keeps three things apart:
 
 - **Board fabrication** at the standard price: `fabricationTotal` and
@@ -84,9 +91,11 @@ bun scripts/quote-fabrication-files.ts unzipped-export/ --qty 5 --assembled 5
 
 ## Quote page
 
+![Quote page summary](docs/quote-page-summary.png)
+
 `site/` is a drag-and-drop page: drop a fabrication zip, loose Gerber and
 drill files with `bom.csv` and `pick_and_place.csv`, or a Circuit JSON file,
-and it shows the full quote. It runs entirely in the browser (jlcsearch allows
+and it shows the summary table first, with the details folded below. It runs entirely in the browser (jlcsearch allows
 cross-origin requests), so it is a static site:
 
 ```sh

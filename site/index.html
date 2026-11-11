@@ -36,47 +36,73 @@
         />
       </label>
 
-      <form id="order-form" class="order-form">
-        <label>PCB quantity <input name="quantity" type="number" min="1" value="5" /></label>
-        <label>Assembled boards <input name="assembledQuantity" type="number" min="1" value="2" /></label>
-        <label>Assembly
-          <select name="assembly">
-            <option value="auto">Auto</option>
-            <option value="economic">Economic</option>
-            <option value="standard">Standard</option>
-            <option value="none">None</option>
-          </select>
-        </label>
-        <label>Surface finish
-          <select name="surfaceFinish">
-            <option value="hasl_lead_free" selected>Lead-free HASL</option>
-            <option value="hasl_leaded">HASL (with lead)</option>
-            <option value="enig">ENIG</option>
-          </select>
-        </label>
-        <label>Material
-          <select name="material">
-            <option value="">From the files</option>
-            <option value="fr4">FR4</option>
-            <option value="flex">Flex</option>
-          </select>
-        </label>
-        <label>Thickness (mm) <input name="thicknessMm" type="number" step="0.01" min="0" placeholder="from the files" /></label>
-        <label>Carrier
-          <select name="carrier">
-            <option value="dhl">DHL Express</option>
-            <option value="ups">UPS Express Saver</option>
-          </select>
-        </label>
-        <label>Shipping cost (USD) <input name="shippingCost" type="number" step="0.01" min="0" placeholder="estimate" /></label>
-        <label>Order weight (kg) <input name="shippingWeightKg" type="number" step="0.001" min="0" placeholder="estimate" /></label>
+      <form id="order-form" class="order-form" novalidate>
+        <fieldset>
+          <legend>Order</legend>
+          <label>PCB quantity
+            <input name="quantity" type="number" min="1" step="1" value="5" inputmode="numeric" />
+          </label>
+          <label>Assembled boards
+            <input name="assembledQuantity" type="number" min="1" max="5" step="1" value="2" inputmode="numeric" />
+            <small>At most the PCB quantity; the rest stay bare</small>
+          </label>
+          <label>Assembly
+            <select name="assembly">
+              <option value="auto">Economic if possible</option>
+              <option value="economic">Economic</option>
+              <option value="standard">Standard</option>
+              <option value="none">No assembly</option>
+            </select>
+          </label>
+          <label>Surface finish
+            <select name="surfaceFinish">
+              <option value="hasl_lead_free" selected>Lead-free HASL</option>
+              <option value="hasl_leaded">HASL (with lead)</option>
+              <option value="enig">ENIG</option>
+            </select>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>Board</legend>
+          <label>Material
+            <select name="material">
+              <option value="">From the files</option>
+              <option value="fr4">FR4</option>
+              <option value="flex">Flex</option>
+            </select>
+          </label>
+          <label>Thickness (mm)
+            <input name="thicknessMm" type="number" step="0.01" min="0" placeholder="from the files" />
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend>Shipping to the US</legend>
+          <label>Carrier
+            <select name="carrier">
+              <option value="dhl">DHL Express</option>
+              <option value="ups">UPS Express Saver</option>
+            </select>
+          </label>
+          <label>Shipping cost (USD)
+            <input name="shippingCost" type="number" step="0.01" min="0" placeholder="estimated" />
+            <small>From JLCPCB's checkout, if you have it</small>
+          </label>
+          <label>Order weight (kg)
+            <input name="shippingWeightKg" type="number" step="0.001" min="0" placeholder="estimated" />
+          </label>
+        </fieldset>
         <label class="checkbox">
           <input name="excludeUnresolved" type="checkbox" checked />
-          Quote without parts that cannot be priced
+          Quote without parts that cannot be priced (they are listed)
         </label>
+        <p id="form-error" class="form-error" role="alert" hidden></p>
       </form>
 
-      <div id="status" class="status"></div>
+      <div class="status-row">
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+        <progress id="progress" max="1" value="0" hidden></progress>
+      </div>
+
       <div id="results"></div>
     </main>
     <script type="module" src="./main.js"></script>

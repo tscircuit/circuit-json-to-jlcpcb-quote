@@ -1,10 +1,11 @@
 import type {
   AdditionalFee,
-  ShippingOption,
   AssemblyOption,
   JlcpcbQuote,
   PricedBomLine,
   QuoteLineItem,
+  QuoteSummaryRow,
+  ShippingOption,
 } from "./types"
 
 const LABEL_WIDTH = 52
@@ -93,6 +94,22 @@ const formatShippingOption = (
   ...option.lineItems.map(formatLineItem),
 ]
 
+const PER_BOARD_UNITS: Record<QuoteSummaryRow["perBoardUnit"], string> = {
+  pcb: "PCB",
+  assembled_board: "assembled board",
+}
+
+const formatSummaryRow = (row: QuoteSummaryRow) =>
+  `  ${row.label.padEnd(LABEL_WIDTH)} ${formatUsd(row.total).padStart(AMOUNT_WIDTH)}  ${`${formatUsd(row.perBoard)} / ${PER_BOARD_UNITS[row.perBoardUnit]}`.padStart(26)}`
+
+const formatSummary = (quote: JlcpcbQuote): string[] => [
+  `  ${"".padEnd(LABEL_WIDTH)} ${"Total".padStart(AMOUNT_WIDTH)}  ${"Per board".padStart(26)}`,
+  ...quote.summary.rows.map(formatSummaryRow),
+  `  ${"-".repeat(LABEL_WIDTH + AMOUNT_WIDTH + 29)}`,
+  formatSummaryRow(quote.summary.grandTotal),
+  `  ${`(range ${formatUsd(quote.summary.grandTotal.lowTotal)} to ${formatUsd(quote.summary.grandTotal.highTotal)})`.padStart(LABEL_WIDTH + AMOUNT_WIDTH + 1)}`,
+]
+
 /** Plain-text rendering of a quote for terminals and logs. */
 export const formatJlcpcbQuote = (quote: JlcpcbQuote): string => {
   const { features, order } = quote
@@ -108,6 +125,10 @@ export const formatJlcpcbQuote = (quote: JlcpcbQuote): string => {
     `JLCPCB estimate (prices as of ${quote.priceTableVersion}, USD, delivery to the US with duties paid)`,
     `Board: ${features.widthMm} x ${features.heightMm} mm, ${features.numLayers} layers, ${features.thicknessMm}mm ${features.material}, ${finish}`,
     vias,
+    "",
+    ...formatSummary(quote),
+    "",
+    "DETAILS",
     "",
     formatHeading({
       title: `Board fabrication (${order.quantity} boards)`,
