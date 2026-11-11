@@ -5,11 +5,14 @@ export interface DrillHit {
   diameterMm: number
   x: number
   y: number
+  /** For a slot, where the drill stops; null for a round hole */
+  slotEnd: { x: number; y: number } | null
 }
 
 const TOOL_DEFINITION = /^T(\d+)C([\d.]+)/
 const TOOL_SELECTION = /^T(\d+)$/
 const HIT = /^X(-?[\d.]+)Y(-?[\d.]+)/
+const SLOT_END = /^G85X(-?[\d.]+)Y(-?[\d.]+)/
 const MM_PER_INCH = 25.4
 
 /** Read the drill hits of an Excellon file. A slot counts as one hit. */
@@ -41,7 +44,19 @@ export const parseExcellonDrill = (drillText: string): DrillHit[] => {
       continue
     }
     // "G85X..Y.." is the far end of a slot whose start is the previous hit.
-    if (line.startsWith("G85")) continue
+    const slotEnd = line.match(SLOT_END)
+    if (slotEnd) {
+      const slotStart = hits.pop()
+      if (!slotStart) throw new Error("Drill file has a slot end with no start")
+      hits.push({
+        ...slotStart,
+        slotEnd: {
+          x: Number(slotEnd[1]) * mmPerUnit,
+          y: Number(slotEnd[2]) * mmPerUnit,
+        },
+      })
+      continue
+    }
     const hit = line.match(HIT)
     if (!hit) continue
     if (selectedDiameterMm <= 0) {
@@ -51,6 +66,7 @@ export const parseExcellonDrill = (drillText: string): DrillHit[] => {
       diameterMm: selectedDiameterMm,
       x: Number(hit[1]) * mmPerUnit,
       y: Number(hit[2]) * mmPerUnit,
+      slotEnd: null,
     })
   }
   return hits

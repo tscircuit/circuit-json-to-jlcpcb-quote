@@ -6,6 +6,7 @@ import {
 import { getBomLinesFromCsv } from "./fabrication-files/get-bom-lines-from-csv"
 import { getSidesWithComponents } from "./fabrication-files/get-sides-with-components"
 import { getSmallestVia } from "./fabrication-files/get-smallest-via"
+import { isOnDrillHit } from "./fabrication-files/is-on-drill-hit"
 import {
   type DrillHit,
   parseExcellonDrill,
@@ -17,15 +18,15 @@ import type { BoardFeatures, BomLine, FabricationFiles } from "./types"
 const roundToHundredthMm = (lengthMm: number) =>
   Math.round(lengthMm * 100) / 100
 
+const getPasteOpenings = (files: FabricationFiles, pastePattern: RegExp) => {
+  const pasteGerber = findFabricationFile(files, pastePattern)
+  return pasteGerber === undefined ? [] : summarizeGerber(pasteGerber).flashes
+}
+
 const countPasteOpenings = (
   files: FabricationFiles,
   pastePattern: RegExp,
-): number => {
-  const pasteGerber = findFabricationFile(files, pastePattern)
-  return pasteGerber === undefined
-    ? 0
-    : summarizeGerber(pasteGerber).flashes.length
-}
+): number => getPasteOpenings(files, pastePattern).length
 
 /**
  * Read what the quote needs out of a JLCPCB fabrication bundle: Gerbers,
@@ -101,9 +102,16 @@ export const getQuoteInputsFromFabricationFiles = (
     files,
     fabricationFilePatterns.bottomPaste,
   )
-  if (!sidesWithComponents.includes("bottom") && bottomPasteOpenings > 0) {
+  // Through-hole pins of top-side parts come out on the bottom, and tscircuit
+  // exports paste openings on them. Only openings elsewhere are unexpected.
+  const strayBottomPasteOpenings = sidesWithComponents.includes("bottom")
+    ? 0
+    : getPasteOpenings(files, fabricationFilePatterns.bottomPaste).filter(
+        (opening) => !isOnDrillHit(opening, platedHits),
+      ).length
+  if (strayBottomPasteOpenings > 0) {
     warnings.push(
-      `${bottomPasteOpenings} paste openings on the bottom but no parts placed there; not counted as joints`,
+      `${strayBottomPasteOpenings} paste openings on the bottom are not on a through-hole pin and no parts are placed there; not counted as joints`,
     )
   }
 
