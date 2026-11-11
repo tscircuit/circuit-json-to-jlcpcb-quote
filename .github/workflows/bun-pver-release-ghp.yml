@@ -30,14 +30,18 @@ jobs:
         with:
           bun-version: latest
 
+      - run: npm install -g pver
+      # Install before pointing the @tscircuit scope at GitHub Packages:
+      # dependencies such as circuit-json-to-gerber pull public @tscircuit
+      # packages from npm, which GitHub Packages answers with 401/404. The
+      # package has no committed lockfile.
+      - run: bun install
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com
           scope: "@tscircuit"
-
-      - run: npm install -g pver
-      - run: bun install --frozen-lockfile
 
       - name: Publish package
         run: pver release --no-push-main
