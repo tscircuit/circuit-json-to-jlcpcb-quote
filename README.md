@@ -43,9 +43,6 @@ The quote keeps three things apart:
   very small vias: `additionalFees`, each with a `reason` and `howToAvoid`,
   and `additionalFeesTotal`. They are not part of the fabrication or assembly
   price.
-  The baking fee JLCPCB asks for moisture-sensitive parts is detected from
-  the part category (LEDs with a built-in IC, modules), because no part
-  source reports moisture-sensitivity levels; its range starts at $0.
 - **Assembly**, priced for both services in `assemblyOptions` (Economic and
   Standard PCBA, each with `total` and `perBoard`). A service JLCPCB does not
   offer for the board carries an `unavailableReason` instead.

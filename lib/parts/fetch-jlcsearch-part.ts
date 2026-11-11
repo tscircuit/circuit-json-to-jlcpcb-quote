@@ -3,14 +3,12 @@ import type { JlcPart, LcscPartNumber } from "../types"
 import { fetchJsonWithRetry } from "./fetch-json-with-retry"
 import {
   convertJlcsearchComponentToJlcPart,
-  jlcsearchSearchComponent,
+  jlcsearchComponent,
 } from "./jlcsearch-component"
 import type { LookupContext } from "./lookup-context"
 import { parseApiResponse } from "./parse-api-response"
 
-const searchResponse = z.object({
-  components: z.array(jlcsearchSearchComponent),
-})
+const searchResponse = z.object({ components: z.array(jlcsearchComponent) })
 
 /**
  * Read one part from jlcsearch by part number: single-piece price, stock and

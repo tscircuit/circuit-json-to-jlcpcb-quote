@@ -128,19 +128,6 @@ export const additionalFeePrices = {
     tinySideBelowMm: 15,
     tinyPricePerPiece: 0.05,
   },
-  /**
-   * quoted: JLCPCB emails a request to bake moisture-sensitive parts for 48
-   * hours at 60°C before assembly, at $7.82 per unique part (SMT order
-   * SMT026110565308, for an SK6812 LED). JLCPCB publishes no part list and no
-   * part source reports a moisture-sensitivity level, so likely parts are
-   * matched on the kinds JLCPCB's terms name: "moisture-sensitive LEDs,
-   * modules". Matched against the end of the part description, which is its
-   * category, e.g. "RGB LEDs(Built-in IC)" or "WiFi Modules".
-   */
-  componentBaking: {
-    pricePerUniquePart: 7.82,
-    likelyMoistureSensitiveCategory: /LEDs\(Built-in IC\)|\bModules\b/i,
-  },
   /** published: a fraction of the board price for fine traces */
   fineTrace: {
     /** 3.0-3.5mil on rigid boards of 4 layers and up */

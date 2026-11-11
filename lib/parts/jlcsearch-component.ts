@@ -14,14 +14,8 @@ export const jlcsearchComponent = z.object({
 })
 export type JlcsearchComponent = z.infer<typeof jlcsearchComponent>
 
-/** A row of jlcsearch's /api/search answer, which also carries the description */
-export const jlcsearchSearchComponent = jlcsearchComponent.extend({
-  description: z.string(),
-})
-export type JlcsearchSearchComponent = z.infer<typeof jlcsearchSearchComponent>
-
 export const convertJlcsearchComponentToJlcPart = (
-  component: JlcsearchSearchComponent,
+  component: JlcsearchComponent,
 ): JlcPart => {
   const unitPrice = component.price ?? component.price1
   if (unitPrice === null || unitPrice === undefined) {
@@ -31,7 +25,6 @@ export const convertJlcsearchComponentToJlcPart = (
     lcsc: `C${component.lcsc}`,
     mfr: component.mfr,
     package: component.package,
-    description: component.description,
     isBasic: component.is_basic === true,
     isPreferred: component.is_preferred === true,
     unitPrice,

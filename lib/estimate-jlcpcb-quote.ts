@@ -4,7 +4,6 @@ import {
   estimateAssemblyOption,
   sumLineItems,
 } from "./estimate/estimate-assembly-option"
-import { estimateBakingFee } from "./estimate/estimate-baking-fee"
 import { estimateBarePcb } from "./estimate/estimate-bare-pcb"
 import { estimateShippingOptions } from "./estimate/estimate-shipping-options"
 import { selectAssemblyType } from "./estimate/select-assembly-type"
@@ -79,14 +78,10 @@ export const estimateJlcpcbQuote = (order: {
   const selectedOption = assemblyOptions.find(
     (option) => option.assembly === assembly,
   )
-  const additionalFees = [
-    ...review.additionalFees,
-    ...(assembly === "none" ? [] : estimateBakingFee(bom)),
-  ]
 
   const lineItems = [
     ...fabrication.lineItems,
-    ...additionalFees,
+    ...review.additionalFees,
     ...(selectedOption?.lineItems ?? []),
   ]
   const fabricationTotal = sumLineItems(fabrication.lineItems, "cost")
@@ -118,8 +113,8 @@ export const estimateJlcpcbQuote = (order: {
     fabricationLineItems: fabrication.lineItems,
     fabricationTotal,
     fabricationPerBoard: roundToCents(fabricationTotal / quantity),
-    additionalFees,
-    additionalFeesTotal: sumLineItems(additionalFees, "cost"),
+    additionalFees: review.additionalFees,
+    additionalFeesTotal: sumLineItems(review.additionalFees, "cost"),
     assemblyOptions,
     assemblyTotal: selectedOption?.total ?? 0,
     lineItems,
