@@ -54,7 +54,11 @@ export const readOrderForm = (
   return {
     options: {
       quantity: readOptionalNumber(form, "quantity"),
-      assembledQuantity: readOptionalNumber(form, "assembledQuantity"),
+      // Without assembly the field is disabled and its count is ignored.
+      assembledQuantity:
+        getField(form, "assembly").value === "none"
+          ? undefined
+          : readOptionalNumber(form, "assembledQuantity"),
       assembly: readChoice({ form, name: "assembly" }, ASSEMBLY_CHOICES),
       surfaceFinish: readChoice(
         { form, name: "surfaceFinish" },

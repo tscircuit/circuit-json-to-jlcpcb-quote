@@ -5,8 +5,8 @@ import {
   type PartLookupProgress,
   quoteFabricationFiles,
 } from "../lib/index"
+import { checkOrderQuantities } from "./check-order-quantities"
 import { createCachingFetch } from "./create-caching-fetch"
-import { escapeHtml } from "./escape-html"
 import { type QuoteInput, readDroppedFiles } from "./read-dropped-files"
 import { readOrderForm } from "./read-order-form"
 import { renderQuote } from "./render-quote"
@@ -26,6 +26,8 @@ const dropZone = getElement("drop-zone", HTMLLabelElement)
 const fileInput = getElement("file-input", HTMLInputElement)
 const orderForm = getElement("order-form", HTMLFormElement)
 const statusLine = getElement("status", HTMLDivElement)
+const progressBar = getElement("progress", HTMLProgressElement)
+const formError = getElement("form-error", HTMLParagraphElement)
 const results = getElement("results", HTMLDivElement)
 
 const cachingFetch = createCachingFetch((url, init) => fetch(url, init))
@@ -60,7 +62,48 @@ const quoteInputWithOptions = async (
   })
 }
 
+const getFormInput = (name: string) => {
+  const field = orderForm.elements.namedItem(name)
+  if (
+    !(field instanceof HTMLInputElement || field instanceof HTMLSelectElement)
+  ) {
+    throw new Error(`Order form has no "${name}" field`)
+  }
+  return field
+}
+
+/** Keep the form consistent; returns false when it cannot be quoted. */
+const checkOrderForm = () => {
+  const quantityInput = getFormInput("quantity")
+  const assembledInput = getFormInput("assembledQuantity")
+  const isAssembled = getFormInput("assembly").value !== "none"
+  assembledInput.disabled = !isAssembled
+  if (assembledInput instanceof HTMLInputElement) {
+    assembledInput.max = quantityInput.value
+  }
+  const problem = checkOrderQuantities({
+    quantityText: quantityInput.value,
+    assembledQuantityText: assembledInput.value,
+    isAssembled,
+  })
+  formError.textContent = problem ?? ""
+  formError.hidden = problem === null
+  return problem === null
+}
+
+const showProgress = (progress: PartLookupProgress | null) => {
+  progressBar.hidden = progress === null
+  if (!progress) return
+  progressBar.max = progress.totalLines
+  progressBar.value = progress.completedLines
+}
+
 const runQuote = async () => {
+  if (!checkOrderForm()) {
+    quoteRunId++
+    showProgress(null)
+    return
+  }
   if (!quoteInput) return
   const runId = ++quoteRunId
   const input = quoteInput
@@ -68,17 +111,20 @@ const runQuote = async () => {
   try {
     const quote = await quoteInputWithOptions(input, (progress) => {
       if (runId !== quoteRunId) return
+      showProgress(progress)
       showStatus({
         text: `Looking up parts on jlcsearch: ${progress.completedLines} of ${progress.totalLines}`,
       })
     })
     if (runId !== quoteRunId) return
+    showProgress(null)
     results.innerHTML = renderQuote(quote)
     showStatus({
       text: `Quoted ${input.sourceName} (${input.kind === "circuit_json" ? "Circuit JSON" : "fabrication files"})`,
     })
   } catch (error) {
     if (runId !== quoteRunId) return
+    showProgress(null)
     results.innerHTML = ""
     showStatus({
       text: error instanceof Error ? error.message : String(error),
@@ -132,4 +178,5 @@ orderForm.addEventListener("submit", (event) => {
   void runQuote()
 })
 
-showStatus({ text: escapeHtml("Drop files to get a quote.") })
+checkOrderForm()
+showStatus({ text: "Drop files to get a quote." })

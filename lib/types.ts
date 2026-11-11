@@ -47,7 +47,10 @@ export interface PartLookupProgress {
 export interface JlcpcbQuoteOptions {
   /** Bare PCBs ordered. Default 5. */
   quantity?: number
-  /** Boards assembled. Default 2 (0 when assembly is "none"). */
+  /**
+   * Boards assembled, at most `quantity`; the rest stay bare. Default 2, or
+   * `quantity` if lower (0 when assembly is "none").
+   */
   assembledQuantity?: number
   /** "auto" picks economic when the board allows it. Default "auto". */
   assembly?: AssemblyType | "auto"
@@ -220,6 +223,26 @@ export interface ShippingOption {
   highGrandTotal: number
 }
 
+/** One kind of expense in the quote summary */
+export interface QuoteSummaryRow {
+  key: string
+  label: string
+  total: number
+  lowTotal: number
+  highTotal: number
+  perBoard: number
+  /** What `perBoard` divides by: PCBs ordered, or boards assembled */
+  perBoardUnit: "pcb" | "assembled_board"
+  note?: string
+}
+
+/** Every expense on one table, then the grand total */
+export interface QuoteSummary {
+  rows: QuoteSummaryRow[]
+  /** Fabrication, additional fees, assembly, parts, shipping and taxes */
+  grandTotal: QuoteSummaryRow
+}
+
 export interface JlcpcbQuote {
   currency: "USD"
   priceTableVersion: string
@@ -233,6 +256,9 @@ export interface JlcpcbQuote {
     carrier: ShippingCarrier
   }
   features: BoardFeatures
+
+  /** Each expense with its total and per-board price, then the grand total */
+  summary: QuoteSummary
 
   /** Bare boards at the standard price, without additional fees */
   fabricationLineItems: QuoteLineItem[]

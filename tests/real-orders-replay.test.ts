@@ -230,10 +230,71 @@ test("Economic PCBA is refused outside its published limits", () => {
   const quote = estimateJlcpcbQuote({
     features: createBoardFeatures({ widthMm: 150, numLayers: 8 }),
     bom: [createPricedBomLine()],
-    options: { assembledQuantity: 60, surfaceFinish: "hasl_leaded" },
+    options: {
+      quantity: 60,
+      assembledQuantity: 60,
+      surfaceFinish: "hasl_leaded",
+    },
   })
   expect(quote.assemblyOptions[0]?.unavailableReasons).toEqual([
     "Economic PCBA is offered for 2, 4, 6-layer boards, not 8",
     "Economic PCBA is offered up to 50 assembled boards, not 60",
   ])
+})
+
+test("the summary splits every expense, with totals and per-board prices", () => {
+  const quote = estimateJlcpcbQuote({
+    features: createBoardFeatures({
+      widthMm: 144.5,
+      heightMm: 82,
+      smtJointsPerBoard: 826,
+    }),
+    bom: createBomFromInvoice({ extendedParts: 10, partsCostPerBoard: 20 }),
+    options: {
+      quantity: 5,
+      assembledQuantity: 2,
+      surfaceFinish: "hasl_lead_free",
+      shippingCost: 39.58,
+    },
+  })
+  const { rows, grandTotal } = quote.summary
+  expect(
+    rows.map((row) => [row.key, row.total, row.perBoard, row.perBoardUnit]),
+  ).toEqual([
+    ["fabrication", 38.65, 7.73, "pcb"],
+    // 8.24 setup + 1.55 stencil + 10 x 3.09 loading + 0.91 nitrogen
+    // + 1652 joints x 0.0017 + 0.45 placement check
+    ["assembly", 44.86, 22.43, "assembled_board"],
+    ["parts", 40, 20, "assembled_board"],
+    ["shipping", 39.58, 19.79, "assembled_board"],
+    ["import_taxes", 43.23, 21.62, "assembled_board"],
+    ["disbursement_fee", 7.52, 3.76, "assembled_board"],
+    ["sales_tax", 10.65, 5.33, "assembled_board"],
+  ])
+  // The rows add up to the grand total, which matches the quote's.
+  expect(grandTotal.total).toBe(quote.grandTotal)
+  expect(
+    Math.round(rows.reduce((total, row) => total + row.total, 0) * 100) / 100,
+  ).toBe(grandTotal.total)
+  expect(grandTotal.perBoardUnit).toBe("assembled_board")
+})
+
+test("assembled boards cannot exceed the PCB quantity", () => {
+  const estimate = (quantity: number, assembledQuantity?: number) =>
+    estimateJlcpcbQuote({
+      features: createBoardFeatures(),
+      bom: [createPricedBomLine()],
+      options: { quantity, assembledQuantity },
+    })
+  expect(() => estimate(5, 6)).toThrow("Cannot assemble 6 boards from 5 PCBs")
+  expect(() => estimate(5, 0)).toThrow(
+    "Assembled boards must be a whole number",
+  )
+  expect(() => estimate(2.5)).toThrow("PCB quantity must be a whole number")
+  // Fewer PCBs than the default of 2 assembled: assemble them all.
+  expect(estimate(1).order.assembledQuantity).toBe(1)
+  expect(estimate(10, 3).order).toMatchObject({
+    quantity: 10,
+    assembledQuantity: 3,
+  })
 })
