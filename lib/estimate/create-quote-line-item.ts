@@ -34,12 +34,16 @@ export const createAdditionalFee = (fee: {
   confidence: QuoteLineItem["confidence"]
   reason: string
   howToAvoid: string
+  lowCost?: number
+  highCost?: number
 }): AdditionalFee => ({
   ...createQuoteLineItem({
     category: "additional_fee",
     key: fee.key,
     label: fee.label,
     cost: fee.cost,
+    lowCost: fee.lowCost,
+    highCost: fee.highCost,
     confidence: fee.confidence,
   }),
   category: "additional_fee",

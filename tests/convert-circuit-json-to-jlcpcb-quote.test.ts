@@ -15,6 +15,7 @@ const fakeFetch = createFakeFetch({
     C2040: {
       mfr: "RP2040",
       package: "LQFN-56(7x7)",
+      description: "LQFN-56(7x7) Microcontrollers (MCU/MPU/SOC) ROHS",
       is_basic: false,
       is_preferred: false,
       stock: 5000,
@@ -23,6 +24,7 @@ const fakeFetch = createFakeFetch({
     C25744: {
       mfr: "0402WGF1002TCE",
       package: "0402",
+      description: "10kΩ 0402 Chip Resistor - Surface Mount ROHS",
       is_basic: true,
       is_preferred: false,
       stock: 100000,
@@ -343,6 +345,7 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
           "matchMethod": "jlc_part_number",
           "part": {
             "billing": null,
+            "description": "LQFN-56(7x7) Microcontrollers (MCU/MPU/SOC) ROHS",
             "isBasic": false,
             "isPreferred": false,
             "lcsc": "C2040",
@@ -369,6 +372,7 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
           "matchMethod": "passive_spec",
           "part": {
             "billing": null,
+            "description": "10kΩ 0402 Chip Resistor - Surface Mount ROHS",
             "isBasic": true,
             "isPreferred": false,
             "lcsc": "C25744",

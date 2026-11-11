@@ -121,6 +121,8 @@ export interface JlcPart {
   lcsc: LcscPartNumber
   mfr: string
   package: string
+  /** JLCPCB's description, ending with the part category */
+  description: string
   isBasic: boolean
   isPreferred: boolean
   /** Price for one piece */

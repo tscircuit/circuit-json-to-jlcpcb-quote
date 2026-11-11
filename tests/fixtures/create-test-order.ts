@@ -22,6 +22,7 @@ export const createJlcPart = (overrides: Partial<JlcPart> = {}): JlcPart => ({
   lcsc: "C1",
   mfr: "PART",
   package: "SOIC-8",
+  description: "SOIC-8 Microcontrollers (MCU/MPU/SOC) ROHS",
   isBasic: false,
   isPreferred: false,
   unitPrice: 1,
