@@ -24,6 +24,8 @@ export const orderDefaults = {
   quantity: 5,
   assembledQuantity: 2,
   surfaceFinish: "hasl_leaded",
+  /** The cheaper of the two on every quote seen */
+  carrier: "dhl",
   jlcsearchBaseUrl: "https://jlcsearch.tscircuit.com",
 } as const
 
@@ -230,6 +232,54 @@ export const estimatedPartBilling = {
   midUnitPriceBelow: 0.2,
   midSpareQuantity: 4,
   range: { lowFraction: 0.9, highFraction: 1.1 },
+}
+
+/**
+ * What JLCPCB's checkout adds to the merchandise total for delivery to the US
+ * with duties paid (DDP).
+ */
+export const landedCostPrices = {
+  /**
+   * calibrated: import duties and taxes are 35% of the merchandise total
+   * (after discounts), to the cent on orders Y45, Y63 and Y98. JLCPCB's cart
+   * labels it "Value-Added Tax".
+   */
+  importTaxRate: 0.35,
+  /**
+   * calibrated: sales tax is charged on the merchandise total only; it is the
+   * same whichever carrier is chosen, so shipping is not in its base. The rate
+   * belongs to the delivery address; this is the rate on Y45, Y63 and Y98.
+   */
+  defaultSalesTaxRate: 0.08625,
+  carriers: {
+    dhl: {
+      service: "DHL Express (DDP)",
+      /** quoted: Y63 and Y98. Y45 (September 2026) had none. */
+      disbursementFee: 7.52,
+      /** heuristic: the UPS line scaled by the one DHL/UPS pair (39.58/64.68) */
+      shippingBase: 4.23,
+      shippingPerKg: 36.52,
+    },
+    ups: {
+      service: "UPS Express Saver (DDP)",
+      /** quoted: one cart */
+      disbursementFee: 4.44,
+      /** heuristic: line through two quotes, 0.33kg $26.60 and 0.968kg $64.68 */
+      shippingBase: 6.91,
+      shippingPerKg: 59.68,
+    },
+  },
+  estimatedShippingRange: { lowFraction: 0.7, highFraction: 1.4 },
+  /**
+   * heuristic: order weight as JLCPCB's quote page reports it, packaging
+   * included. Fitted to one board (144.5x82mm, 4 layers): 0.33kg for 5 bare
+   * boards, 0.968kg with 2 of them assembled, 1.23kg with 5 assembled.
+   */
+  weight: {
+    bareGramsPerCm2PerMm: 0.348,
+    assemblyPackagingGrams: 463,
+    gramsPerAssembledBoard: 87,
+  },
 }
 
 /** How fabrication files are read */

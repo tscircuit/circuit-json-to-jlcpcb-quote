@@ -5,7 +5,9 @@
  *
  * bun scripts/quote-fabrication-files.ts <dir> [--qty 5] [--assembled 2]
  *   [--assembly auto|economic|standard|none] [--finish hasl_leaded|...]
- *   [--material fr4|flex] [--thickness 1.6] [--exclude-unresolved] [--json]
+ *   [--material fr4|flex] [--thickness 1.6] [--exclude-unresolved]
+ *   [--carrier dhl|ups] [--shipping-cost 39.58] [--weight 0.968]
+ *   [--sales-tax-rate 0.08625] [--json]
  */
 import { readdir } from "node:fs/promises"
 import { basename, join } from "node:path"

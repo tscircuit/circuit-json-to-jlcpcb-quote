@@ -2,6 +2,7 @@ import type {
   AssemblyType,
   BoardMaterial,
   JlcpcbQuoteOptions,
+  ShippingCarrier,
   SurfaceFinish,
 } from "../lib/index"
 
@@ -17,6 +18,7 @@ const FINISH_CHOICES: SurfaceFinish[] = [
   "enig",
 ]
 const MATERIAL_CHOICES: BoardMaterial[] = ["fr4", "flex"]
+const CARRIER_CHOICES: ShippingCarrier[] = ["dhl", "ups"]
 
 /** Text after `--name`, or undefined when the flag is absent. */
 export const readFlag = (args: string[], name: string): string | undefined => {
@@ -51,6 +53,10 @@ export const readQuoteOptions = (args: string[]): JlcpcbQuoteOptions => ({
   assembly: readChoice({ args, name: "assembly" }, ASSEMBLY_CHOICES),
   surfaceFinish: readChoice({ args, name: "finish" }, FINISH_CHOICES),
   unresolvedParts: args.includes("--exclude-unresolved") ? "exclude" : "error",
+  carrier: readChoice({ args, name: "carrier" }, CARRIER_CHOICES),
+  shippingCost: readNumber(args, "shipping-cost"),
+  shippingWeightKg: readNumber(args, "weight"),
+  salesTaxRate: readNumber(args, "sales-tax-rate"),
 })
 
 export const readBoardOrderForm = (args: string[]) => ({

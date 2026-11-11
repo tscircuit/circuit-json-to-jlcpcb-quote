@@ -1,5 +1,6 @@
 import type {
   AdditionalFee,
+  ShippingOption,
   AssemblyOption,
   JlcpcbQuote,
   PricedBomLine,
@@ -79,6 +80,19 @@ const formatBomLine = (line: PricedBomLine) => {
   return `  ${String(line.quantity).padStart(3)}x ${part.lcsc.padEnd(9)} ${part.mfr.slice(0, 24).padEnd(24)} ${library.padEnd(9)} ${part.unitPrice.toFixed(4).padStart(8)}  ${line.designators.join(",").slice(0, 40)}`
 }
 
+const formatShippingOption = (
+  option: ShippingOption,
+  quote: JlcpcbQuote,
+): string[] => [
+  "",
+  formatHeading({
+    title: `Shipping and taxes, ${option.service}`,
+    total: option.total,
+    note: `grand total ${formatUsd(option.grandTotal)}${option.carrier === quote.order.carrier ? "  <- used in the grand total" : ""}`,
+  }),
+  ...option.lineItems.map(formatLineItem),
+]
+
 /** Plain-text rendering of a quote for terminals and logs. */
 export const formatJlcpcbQuote = (quote: JlcpcbQuote): string => {
   const { features, order } = quote
@@ -91,7 +105,7 @@ export const formatJlcpcbQuote = (quote: JlcpcbQuote): string => {
       ? "fabrication + additional fees"
       : `fabrication + additional fees + ${order.assembly} PCBA`
   return [
-    `JLCPCB estimate (prices as of ${quote.priceTableVersion}, USD, excludes shipping/duties/tax)`,
+    `JLCPCB estimate (prices as of ${quote.priceTableVersion}, USD, delivery to the US with duties paid)`,
     `Board: ${features.widthMm} x ${features.heightMm} mm, ${features.numLayers} layers, ${features.thicknessMm}mm ${features.material}, ${finish}`,
     vias,
     "",
@@ -108,9 +122,18 @@ export const formatJlcpcbQuote = (quote: JlcpcbQuote): string => {
     ),
     "",
     formatHeading({
-      title: "TOTAL",
+      title: "MERCHANDISE TOTAL",
       total: quote.total,
       note: `${totalNote}  (range ${formatUsd(quote.lowTotal)} to ${formatUsd(quote.highTotal)})`,
+    }),
+    ...quote.shippingOptions.flatMap((option) =>
+      formatShippingOption(option, quote),
+    ),
+    "",
+    formatHeading({
+      title: "GRAND TOTAL",
+      total: quote.grandTotal,
+      note: `merchandise + shipping and taxes, ${quote.order.carrier.toUpperCase()}  (range ${formatUsd(quote.lowGrandTotal)} to ${formatUsd(quote.highGrandTotal)})`,
     }),
     ...(quote.bom.length > 0
       ? ["", "BOM", ...quote.bom.map(formatBomLine)]

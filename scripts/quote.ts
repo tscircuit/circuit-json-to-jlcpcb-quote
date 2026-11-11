@@ -8,7 +8,9 @@
  *   [--finish hasl_leaded|hasl_lead_free|enig]
  *   [--exclude-unresolved]  quote without parts that cannot be priced
  *   [--out DIR]             also write the generated fabrication files
- *   [--json]
+ *
+ *   [--carrier dhl|ups] [--shipping-cost 39.58] [--weight 0.968]
+ *   [--sales-tax-rate 0.08625] [--json]
  */
 import { mkdir } from "node:fs/promises"
 import { dirname, join } from "node:path"

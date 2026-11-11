@@ -11,6 +11,7 @@ export type AssemblyType = "none" | "economic" | "standard"
 export type SurfaceFinish = "hasl_leaded" | "hasl_lead_free" | "enig"
 export type BoardMaterial = "fr4" | "flex"
 export type BoardSide = "top" | "bottom"
+export type ShippingCarrier = "dhl" | "ups"
 export type LayerCount = number
 
 /**
@@ -61,6 +62,20 @@ export interface JlcpcbQuoteOptions {
    * and lists them in `excludedBomLines`.
    */
   unresolvedParts?: "error" | "exclude"
+  /** Carrier whose shipping and taxes go into `grandTotal`. Default "dhl". */
+  carrier?: ShippingCarrier
+  /**
+   * The exact shipping cost JLCPCB's checkout shows for `carrier`. Without it
+   * shipping is estimated from the order weight.
+   */
+  shippingCost?: number
+  /** Order weight in kg, as JLCPCB's quote page shows it. Estimated if absent. */
+  shippingWeightKg?: number
+  /**
+   * Combined state and local sales tax rate of the US delivery address, e.g.
+   * 0.0725. Defaults to the rate on tscircuit's own orders.
+   */
+  salesTaxRate?: number
   jlcsearchBaseUrl?: string
   fetch?: FetchLike
 }
@@ -132,7 +147,12 @@ export interface PricedBomLine extends BomLine {
 }
 
 export interface QuoteLineItem {
-  category: "fabrication" | "additional_fee" | "assembly" | "components"
+  category:
+    | "fabrication"
+    | "additional_fee"
+    | "assembly"
+    | "components"
+    | "shipping_and_taxes"
   key: string
   label: string
   cost: number
@@ -174,6 +194,24 @@ export interface AssemblyOption {
   warnings: string[]
 }
 
+/** Delivery and the taxes charged at checkout, for one carrier */
+export interface ShippingOption {
+  carrier: ShippingCarrier
+  /** e.g. "DHL Express (DDP)" */
+  service: string
+  weightKg: number
+  /** Shipping, import taxes, disbursement fee and sales tax */
+  lineItems: QuoteLineItem[]
+  /** Sum of `lineItems` */
+  total: number
+  lowTotal: number
+  highTotal: number
+  /** Merchandise total plus `total`: what JLCPCB's checkout charges */
+  grandTotal: number
+  lowGrandTotal: number
+  highGrandTotal: number
+}
+
 export interface JlcpcbQuote {
   currency: "USD"
   priceTableVersion: string
@@ -183,6 +221,8 @@ export interface JlcpcbQuote {
     /** The PCBA service the totals below are for */
     assembly: AssemblyType
     surfaceFinish: SurfaceFinish
+    /** The carrier `grandTotal` is for */
+    carrier: ShippingCarrier
   }
   features: BoardFeatures
 
@@ -206,9 +246,19 @@ export interface JlcpcbQuote {
   bom: PricedBomLine[]
   /** Lines left out because `unresolvedParts` is "exclude" */
   excludedBomLines: { line: BomLine; reason: string }[]
-  /** fabricationTotal + additionalFeesTotal + assemblyTotal */
+  /**
+   * JLCPCB's "Merchandise Total": fabricationTotal + additionalFeesTotal +
+   * assemblyTotal. Excludes shipping and taxes.
+   */
   total: number
   lowTotal: number
   highTotal: number
+
+  /** Shipping and taxes for each carrier, side by side */
+  shippingOptions: ShippingOption[]
+  /** Merchandise total plus shipping and taxes for `order.carrier` */
+  grandTotal: number
+  lowGrandTotal: number
+  highGrandTotal: number
   warnings: string[]
 }

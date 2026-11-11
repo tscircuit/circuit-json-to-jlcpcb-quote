@@ -1,6 +1,7 @@
 export { convertCircuitJsonToFabricationFiles } from "./convert-circuit-json-to-fabrication-files"
 export { convertCircuitJsonToJlcpcbQuote } from "./convert-circuit-json-to-jlcpcb-quote"
 export { estimateJlcpcbQuote } from "./estimate-jlcpcb-quote"
+export { estimateOrderWeightKg } from "./estimate/estimate-shipping-options"
 export { formatJlcpcbQuote } from "./format-jlcpcb-quote"
 export { getQuoteInputsFromFabricationFiles } from "./get-quote-inputs-from-fabrication-files"
 export { lookupJlcParts } from "./lookup-jlc-parts"

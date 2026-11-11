@@ -5,8 +5,13 @@ import {
   sumLineItems,
 } from "./estimate/estimate-assembly-option"
 import { estimateBarePcb } from "./estimate/estimate-bare-pcb"
+import { estimateShippingOptions } from "./estimate/estimate-shipping-options"
 import { selectAssemblyType } from "./estimate/select-assembly-type"
-import { JLCPCB_PRICE_TABLE_VERSION, orderDefaults } from "./jlcpcb-price-table"
+import {
+  JLCPCB_PRICE_TABLE_VERSION,
+  landedCostPrices,
+  orderDefaults,
+} from "./jlcpcb-price-table"
 import type {
   AssemblyOption,
   BoardFeatures,
@@ -80,10 +85,30 @@ export const estimateJlcpcbQuote = (order: {
     ...(selectedOption?.lineItems ?? []),
   ]
   const fabricationTotal = sumLineItems(fabrication.lineItems, "cost")
+  const merchandise = {
+    total: sumLineItems(lineItems, "cost"),
+    lowTotal: sumLineItems(lineItems, "lowCost"),
+    highTotal: sumLineItems(lineItems, "highCost"),
+  }
+  const carrier = options.carrier ?? orderDefaults.carrier
+  const shippingOptions = estimateShippingOptions({
+    features,
+    quantity,
+    assembledQuantity,
+    merchandise,
+    selectedCarrier: carrier,
+    shippingCost: options.shippingCost,
+    shippingWeightKg: options.shippingWeightKg,
+    salesTaxRate: options.salesTaxRate ?? landedCostPrices.defaultSalesTaxRate,
+  })
+  const selectedShipping = shippingOptions.find(
+    (option) => option.carrier === carrier,
+  )
+  if (!selectedShipping) throw new Error(`No shipping option for ${carrier}`)
   return {
     currency: "USD",
     priceTableVersion: JLCPCB_PRICE_TABLE_VERSION,
-    order: { quantity, assembledQuantity, assembly, surfaceFinish },
+    order: { quantity, assembledQuantity, assembly, surfaceFinish, carrier },
     features,
     fabricationLineItems: fabrication.lineItems,
     fabricationTotal,
@@ -95,9 +120,11 @@ export const estimateJlcpcbQuote = (order: {
     lineItems,
     bom: assembly === "none" ? [] : bom,
     excludedBomLines: order.excludedBomLines ?? [],
-    total: sumLineItems(lineItems, "cost"),
-    lowTotal: sumLineItems(lineItems, "lowCost"),
-    highTotal: sumLineItems(lineItems, "highCost"),
+    ...merchandise,
+    shippingOptions,
+    grandTotal: selectedShipping.grandTotal,
+    lowGrandTotal: selectedShipping.lowGrandTotal,
+    highGrandTotal: selectedShipping.highGrandTotal,
     warnings: [
       ...(order.warnings ?? []),
       ...fabrication.warnings,

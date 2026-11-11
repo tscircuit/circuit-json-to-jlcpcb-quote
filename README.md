@@ -47,7 +47,27 @@ The quote keeps three things apart:
   Standard PCBA, each with `total` and `perBoard`). A service JLCPCB does not
   offer for the board carries an `unavailableReason` instead.
 
-`total` is fabrication + additional fees + the service in `order.assembly`.
+`total` is JLCPCB's "Merchandise Total": fabrication + additional fees + the
+service in `order.assembly`.
+
+## Shipping and taxes
+
+`shippingOptions` adds what JLCPCB's checkout charges on top for delivery to
+the US with duties paid, for DHL and UPS side by side, and `grandTotal` uses
+`carrier` (DHL by default):
+
+- **Shipping:** pass the exact `shippingCost` from the checkout, or it is
+  estimated from the order weight (`shippingWeightKg`, as JLCPCB's quote page
+  shows it, or estimated from the board). The estimate is fitted to very few
+  orders and carries a wide range.
+- **Import duties and taxes:** 35% of the merchandise total.
+- **Duty and tax disbursement fee:** the carrier's fixed fee.
+- **Sales tax:** `salesTaxRate` of the merchandise total. Shipping is not
+  taxed. The rate depends on the delivery address; the default is the rate on
+  tscircuit's own orders.
+
+The import and sales tax rules reproduce three real checkouts to within two
+cents.
 
 From the command line:
 
