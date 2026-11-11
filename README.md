@@ -82,6 +82,19 @@ An existing fabrication export can be quoted directly with
 bun scripts/quote-fabrication-files.ts unzipped-export/ --qty 5 --assembled 5
 ```
 
+## Quote page
+
+`site/` is a drag-and-drop page: drop a fabrication zip, loose Gerber and
+drill files with `bom.csv` and `pick_and_place.csv`, or a Circuit JSON file,
+and it shows the full quote. It runs entirely in the browser (jlcsearch allows
+cross-origin requests), so it is a static site:
+
+```sh
+bun run build:site   # writes site/dist
+```
+
+`vercel.json` builds and serves it on Vercel.
+
 ## How it works
 
 Circuit JSON is quoted the way JLCPCB quotes an order: from fabrication files.

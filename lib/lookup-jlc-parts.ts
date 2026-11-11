@@ -17,8 +17,9 @@ export const lookupJlcParts = async (
   const pricedBom: PricedBomLine[] = []
   const unresolvedBomLines: JlcpcbQuote["excludedBomLines"] = []
   const warnings: string[] = []
-  for (const line of bom) {
+  for (const [index, line] of bom.entries()) {
     const resolution = await resolveBomLine(line, ctx)
+    ctx.onProgress?.({ completedLines: index + 1, totalLines: bom.length })
     if (resolution.status === "unresolved") {
       unresolvedBomLines.push({ line, reason: resolution.reason })
       continue

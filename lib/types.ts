@@ -38,6 +38,12 @@ export type FetchLike = (
   },
 ) => Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }>
 
+/** Reported after each BOM line is looked up */
+export interface PartLookupProgress {
+  completedLines: number
+  totalLines: number
+}
+
 export interface JlcpcbQuoteOptions {
   /** Bare PCBs ordered. Default 5. */
   quantity?: number
@@ -78,6 +84,8 @@ export interface JlcpcbQuoteOptions {
   salesTaxRate?: number
   jlcsearchBaseUrl?: string
   fetch?: FetchLike
+  /** Part lookups take about a second per BOM line; this reports progress. */
+  onProgress?: (progress: PartLookupProgress) => void
 }
 
 export interface BoardFeatures {

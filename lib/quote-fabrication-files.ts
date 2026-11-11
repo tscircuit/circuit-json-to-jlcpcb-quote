@@ -73,6 +73,7 @@ export const quoteFabricationFiles = async (order: {
     fetch: options.fetch ?? globalFetch,
     jlcsearchBaseUrl:
       options.jlcsearchBaseUrl ?? orderDefaults.jlcsearchBaseUrl,
+    onProgress: options.onProgress,
   })
   if (
     lookup.unresolvedBomLines.length > 0 &&
