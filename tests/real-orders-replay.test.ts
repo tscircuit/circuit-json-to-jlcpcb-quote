@@ -44,27 +44,32 @@ test("Y45: 4-layer 70x70, 0.15/0.3mm vias, standard PCBA", () => {
   expect(getLineItemCost(quote, "smt_placement")).toBe(2.06)
   expect(getLineItemCost(quote, "packaging")).toBeCloseTo(0.49, 1)
 
-  // Bare PCB: the $7 offer became $81.78 after two additional fees for the
-  // small vias, which are reported apart from the fabrication price.
+  // The calculator itemizes testing and drilling. The range also accounts
+  // for the higher supplement requested after review of this order.
   expect(quote.fabricationTotal).toBe(8.05)
   expect(quote.fabricationPerBoard).toBe(1.61)
   expect(quote.additionalFees.map((fee) => [fee.key, fee.cost])).toEqual([
-    ["four_wire_kelvin_test", 54.18],
-    ["very_small_via", 16.29],
+    ["four_wire_kelvin_test", 16.87],
+    ["very_small_via", 34.3],
   ])
-  expect(quote.additionalFeesTotal).toBe(70.47)
+  expect(quote.additionalFeesTotal).toBe(51.17)
   expect(quote.additionalFees[0]).toMatchObject({
+    highCost: 54.18,
     reason:
-      "The smallest via has a 0.15mm hole and a 0.3mm pad. JLCPCB tests boards with via holes under 0.3mm and pads of 0.4mm or less with a 4-wire Kelvin test.",
+      "A via has a 0.15mm hole and a 0.3mm pad. JLCPCB requires 4-wire Kelvin testing for this via size.",
     howToAvoid:
-      "Use vias with a hole of at least 0.3mm and a pad of at least 0.45mm.",
+      "Use via holes of at least 0.3mm. For smaller holes down to 0.2mm, use pads of at least 0.45mm.",
   })
-  const pcbCost = quote.fabricationTotal + quote.additionalFeesTotal
-  expect(Math.abs(pcbCost - 81.78) / 81.78).toBeLessThan(0.05)
+  const pcbHigh =
+    quote.fabricationTotal +
+    quote.additionalFees.reduce((total, fee) => total + fee.highCost, 0)
+  expect(quote.fabricationTotal + quote.additionalFeesTotal).toBeLessThan(81.78)
+  expect(pcbHigh).toBeGreaterThan(81.78)
 
   // Actual: 288.92 including 49.26 of optional expedited build.
   const actual = 288.92 - 49.26
-  expect(Math.abs(quote.total - actual) / actual).toBeLessThan(0.03)
+  expect(quote.lowTotal).toBeLessThan(actual)
+  expect(quote.highTotal).toBeGreaterThan(actual)
 })
 
 test("Y63: 4-layer 35x35, 0.3/0.4mm vias, lead-free HASL, economic PCBA", () => {
@@ -95,6 +100,28 @@ test("Y63: 4-layer 35x35, 0.3/0.4mm vias, lead-free HASL, economic PCBA", () => 
   expect(getLineItemCost(quote, "smt_placement")).toBe(1.69)
   expect(Math.abs(quote.total - 125.3) / 125.3).toBeLessThan(0.02)
 })
+
+test.each([
+  { hole: 0.25, pad: 0.4, quantity: 5, drilling: 16.95, kelvin: 16.87 },
+  { hole: 0.2, pad: 0.4, quantity: 5, drilling: 17.15, kelvin: 16.87 },
+  { hole: 0.25, pad: 0.4, quantity: 100, drilling: 24.65, kelvin: 23.03 },
+  { hole: 0.2, pad: 0.35, quantity: 100, drilling: 28.7, kelvin: 23.03 },
+  { hole: 0.15, pad: 0.3, quantity: 100, drilling: 57.4, kelvin: 23.03 },
+])(
+  "live 70x70mm quote: $quantity boards, $hole mm drill and $pad mm pad",
+  ({ hole, pad, quantity, drilling, kelvin }) => {
+    const quote = estimateJlcpcbQuote({
+      features: createBoardFeatures({
+        numLayers: 2,
+        smallestVia: { holeDiameterMm: hole, padDiameterMm: pad },
+      }),
+      bom: [],
+      options: { quantity, assembly: "none" },
+    })
+    expect(getLineItemCost(quote, "very_small_via")).toBe(drilling)
+    expect(getLineItemCost(quote, "four_wire_kelvin_test")).toBe(kelvin)
+  },
+)
 
 test("live quote: 4-layer 144.5x82, lead-free HASL, economic PCBA x5", () => {
   // JLCPCB quote page, 2026-11-10: PCB 38.65 + economic PCBA 309.78.

@@ -17,7 +17,7 @@
  */
 import type { LayerCount } from "./types"
 
-export const JLCPCB_PRICE_TABLE_VERSION = "2026-11-10"
+export const JLCPCB_PRICE_TABLE_VERSION = "2026-11-12"
 
 /** What the order form is taken to say when the caller does not */
 export const orderDefaults = {
@@ -102,20 +102,35 @@ export const fabricationPrices = {
  * design. Their engineers add most of them after reviewing the files.
  */
 export const additionalFeePrices = {
-  /**
-   * calibrated: the one notice with no duty/shipping bundled asks 54.18; the
-   * 67.91 and 67.98 notices are 54.18 plus about 25% duty/VAT. Observed on
-   * rigid boards with via holes of 0.2mm and smaller and pads up to 0.4mm;
-   * a 0.3mm hole with a 0.4mm pad was not charged.
-   */
   fourWireKelvinTest: {
+    /** Y45 supplement requested after review, used as an upper estimate */
     price: 54.18,
+    /** Quoted: $16.87 for 5 boards and $23.03 for 100, at 70x70mm. */
+    quoted: { perOrder: 16.55, perM2: 13.23 },
     viaHoleBelowMm: 0.3,
     viaPadUpToMm: 0.4,
-    /** The smallest via on the order form that carries no charge */
     freeVia: { holeDiameterMm: 0.3, padDiameterMm: 0.45 },
   },
-  /** published: per order, for holes below these diameters */
+  /**
+   * JLCPCB's FR4 capabilities describe the large-pad exemption:
+   * https://jlcpcb.com/capabilities/pcb-capabilities
+   *
+   * The per-order and area rates are fitted to JLCPCB's "Min via hole
+   * size/diameter" line on 2026-11-12: 70x70mm FR4, 5 and 100 boards.
+   * The 0.25, 0.2 and 0.15mm options quoted $16.95/$24.65,
+   * $17.15/$28.70 and $34.30/$57.40, respectively.
+   * https://cart.jlcpcb.com/quote
+   */
+  rigidViaDrilling: {
+    widePadExemptionFromHoleMm: 0.2,
+    // Select the largest quoted drill option that can make the hole.
+    rates: [
+      { minHoleMm: 0.25, perOrder: 16.54, perM2: 16.55 },
+      { minHoleMm: 0.2, perOrder: 16.54, perM2: 24.82 },
+    ],
+    smallestDrillRate: { perOrder: 33.08, perM2: 49.64 },
+  },
+  /** published: flex prototype orders, for holes below these diameters */
   verySmallVia: {
     price: 16.29,
     multilayerFromLayers: 4,

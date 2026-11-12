@@ -91,6 +91,11 @@ export interface JlcpcbQuoteOptions {
   onProgress?: (progress: PartLookupProgress) => void
 }
 
+export interface ViaSize {
+  holeDiameterMm: number
+  padDiameterMm: number
+}
+
 export interface BoardFeatures {
   widthMm: number
   heightMm: number
@@ -100,8 +105,10 @@ export interface BoardFeatures {
   /** Flex boards only */
   stiffenerCount: number
   viaCount: number
-  /** The via most likely to draw a charge: smallest hole, then smallest pad. */
-  smallestVia: { holeDiameterMm: number; padDiameterMm: number } | null
+  /** The smallest hole, then the smallest pad among vias with that hole. */
+  smallestVia: ViaSize | null
+  /** Distinct drill/pad pairs, when available from the fabrication files. */
+  viaSizes?: readonly ViaSize[]
   holeCount: number
   minTraceWidthMm: number | null
   sidesWithComponents: BoardSide[]

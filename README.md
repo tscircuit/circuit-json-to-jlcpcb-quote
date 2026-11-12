@@ -46,8 +46,8 @@ The quote keeps three things apart:
 
 - **Board fabrication** at the standard price: `fabricationTotal` and
   `fabricationPerBoard`.
-- **Additional fees** the design triggers, such as the 4-wire Kelvin test for
-  very small vias: `additionalFees`, each with a `reason` and `howToAvoid`,
+- **Additional fees** the design triggers, such as small-via drilling and
+  4-wire Kelvin testing: `additionalFees`, each with a `reason` and `howToAvoid`,
   and `additionalFeesTotal`. They are not part of the fabrication or assembly
   price.
 - **Assembly**, priced for both services in `assemblyOptions` (Economic and
