@@ -1,6 +1,7 @@
 import { additionalFeePrices, capabilityLimits } from "../jlcpcb-price-table"
-import type { AdditionalFee, BoardFeatures } from "../types"
+import type { AdditionalFee, BoardFeatures, ViaSize } from "../types"
 import { createAdditionalFee } from "./create-quote-line-item"
+import { getOrderedAreaM2 } from "./estimate-bare-pcb"
 
 interface ReviewedBoard {
   features: BoardFeatures
@@ -19,25 +20,63 @@ const needsKelvinTest = (features: BoardFeatures) => {
   )
 }
 
-const estimateKelvinTestFee = (board: ReviewedBoard): AdditionalFee[] => {
-  const via = board.features.smallestVia
-  // Only seen on rigid boards; flex boards get a warning instead.
-  if (!via || board.features.material === "flex") return []
-  if (!needsKelvinTest(board.features)) return []
-  const kelvin = additionalFeePrices.fourWireKelvinTest
+const getSmallestViaWithFee = (features: BoardFeatures): ViaSize | null => {
+  const { freeVia } = additionalFeePrices.fourWireKelvinTest
+  const { widePadExemptionFromHoleMm } = additionalFeePrices.rigidViaDrilling
+  const vias =
+    features.viaSizes ?? (features.smallestVia ? [features.smallestVia] : [])
+  let smallestVia: ViaSize | null = null
+  for (const via of vias) {
+    if (via.holeDiameterMm >= freeVia.holeDiameterMm) continue
+    if (
+      via.holeDiameterMm >= widePadExemptionFromHoleMm &&
+      via.padDiameterMm >= freeVia.padDiameterMm
+    ) {
+      continue
+    }
+    if (!smallestVia || via.holeDiameterMm < smallestVia.holeDiameterMm) {
+      smallestVia = via
+    }
+  }
+  return smallestVia
+}
+
+const estimateRigidViaFees = (board: ReviewedBoard): AdditionalFee[] => {
+  const via = getSmallestViaWithFee(board.features)
+  if (!via) return []
+
+  const { fourWireKelvinTest: kelvin, rigidViaDrilling } = additionalFeePrices
+  const areaM2 = getOrderedAreaM2(board)
+  const kelvinCost = kelvin.quoted.perOrder + kelvin.quoted.perM2 * areaM2
+  const drillingRate =
+    rigidViaDrilling.rates.find(
+      (rate) => via.holeDiameterMm >= rate.minHoleMm,
+    ) ?? rigidViaDrilling.smallestDrillRate
+  const viaDescription = `A via has a ${via.holeDiameterMm}mm hole and a ${via.padDiameterMm}mm pad.`
+  const howToAvoid = `Use via holes of at least ${kelvin.freeVia.holeDiameterMm}mm. For smaller holes down to ${rigidViaDrilling.widePadExemptionFromHoleMm}mm, use pads of at least ${kelvin.freeVia.padDiameterMm}mm.`
+
   return [
     createAdditionalFee({
       key: "four_wire_kelvin_test",
       label: "4-wire Kelvin test",
-      cost: kelvin.price,
-      confidence: "calibrated",
-      reason: `The smallest via has a ${via.holeDiameterMm}mm hole and a ${via.padDiameterMm}mm pad. JLCPCB tests boards with via holes under ${kelvin.viaHoleBelowMm}mm and pads of ${kelvin.viaPadUpToMm}mm or less with a 4-wire Kelvin test.`,
-      howToAvoid: `Use vias with a hole of at least ${kelvin.freeVia.holeDiameterMm}mm and a pad of at least ${kelvin.freeVia.padDiameterMm}mm.`,
+      cost: kelvinCost,
+      highCost: Math.max(kelvinCost, kelvin.price),
+      confidence: "quoted",
+      reason: `${viaDescription} JLCPCB requires 4-wire Kelvin testing for this via size.`,
+      howToAvoid,
+    }),
+    createAdditionalFee({
+      key: "very_small_via",
+      label: "Small via drilling",
+      cost: drillingRate.perOrder + drillingRate.perM2 * areaM2,
+      confidence: "quoted",
+      reason: `${viaDescription} JLCPCB applies its small-via drilling rate.`,
+      howToAvoid,
     }),
   ]
 }
 
-const estimateVerySmallViaFee = (board: ReviewedBoard): AdditionalFee[] => {
+const estimateFlexViaFee = (board: ReviewedBoard): AdditionalFee[] => {
   const { features } = board
   const via = features.smallestVia
   const { verySmallVia } = additionalFeePrices
@@ -134,7 +173,7 @@ const getReviewWarnings = (board: ReviewedBoard): string[] => {
   const { unpricedThresholds } = additionalFeePrices
   if (isFlex && needsKelvinTest(features)) {
     warnings.push(
-      `The smallest via (${features.smallestVia?.holeDiameterMm}/${features.smallestVia?.padDiameterMm}mm) would draw a $${additionalFeePrices.fourWireKelvinTest.price} 4-wire Kelvin test fee on a rigid board; whether JLCPCB charges it on flex boards is not known`,
+      `The smallest via (${features.smallestVia?.holeDiameterMm}/${features.smallestVia?.padDiameterMm}mm) would require a 4-wire Kelvin test on a rigid board. Kelvin testing for flex boards is unpriced.`,
     )
   }
   if (
@@ -192,8 +231,9 @@ export const estimateAdditionalFees = (
   board: ReviewedBoard,
 ): { additionalFees: AdditionalFee[]; warnings: string[] } => ({
   additionalFees: [
-    ...estimateKelvinTestFee(board),
-    ...estimateVerySmallViaFee(board),
+    ...(board.features.material === "flex"
+      ? estimateFlexViaFee(board)
+      : estimateRigidViaFees(board)),
     ...estimateDeburringFee(board),
     ...estimateFineTraceFee(board),
   ],

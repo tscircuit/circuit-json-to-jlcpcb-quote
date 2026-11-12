@@ -2,6 +2,7 @@ import { expect, test } from "bun:test"
 import {
   convertCircuitJsonToFabricationFiles,
   convertCircuitJsonToJlcpcbQuote,
+  type CircuitJson,
   formatJlcpcbQuote,
 } from "lib/index"
 import {
@@ -516,6 +517,7 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
         "stiffenerCount": 0,
         "thicknessMm": 1.6,
         "viaCount": 0,
+        "viaSizes": [],
         "widthMm": 30,
       },
       "grandTotal": 93.11,
@@ -634,7 +636,7 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
         "quantity": 5,
         "surfaceFinish": "hasl_lead_free",
       },
-      "priceTableVersion": "2026-11-10",
+      "priceTableVersion": "2026-11-12",
       "shippingOptions": [
         {
           "carrier": "dhl",
@@ -836,6 +838,61 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
       ],
     }
   `)
+})
+
+test("a smaller exempt drill does not hide a chargeable via", async () => {
+  const circuitJson: CircuitJson = [
+    {
+      type: "pcb_board",
+      pcb_board_id: "pcb_board_0",
+      center: { x: 0, y: 0 },
+      width: 70,
+      height: 70,
+      thickness: 1.6,
+      num_layers: 4,
+      material: "fr4",
+    },
+    {
+      type: "pcb_via",
+      pcb_via_id: "pcb_via_0",
+      x: 0,
+      y: 0,
+      layers: ["top", "bottom"],
+      hole_diameter: 0.2,
+      outer_diameter: 0.45,
+    },
+  ]
+  const exemptQuote = await convertCircuitJsonToJlcpcbQuote({
+    circuitJson,
+    assembly: "none",
+  })
+  expect(exemptQuote.additionalFees).toEqual([])
+
+  for (const x of [-5, 5]) {
+    circuitJson.push({
+      type: "pcb_via",
+      pcb_via_id: `pcb_via_${x}`,
+      x,
+      y: 0,
+      layers: ["top", "bottom"],
+      hole_diameter: 0.25,
+      outer_diameter: 0.42,
+    })
+  }
+  const quote = await convertCircuitJsonToJlcpcbQuote({
+    circuitJson,
+    assembly: "none",
+  })
+  expect(quote.features.smallestVia).toEqual({
+    holeDiameterMm: 0.2,
+    padDiameterMm: 0.45,
+  })
+  expect(quote.additionalFees.map((fee) => [fee.key, fee.cost])).toEqual([
+    ["four_wire_kelvin_test", 16.87],
+    ["very_small_via", 16.95],
+  ])
+  expect(quote.additionalFeesTotal).toBe(33.82)
+  expect(quote.total).toBe(quote.fabricationTotal + 33.82)
 })
 
 test("bare-board quote needs no part lookups", async () => {

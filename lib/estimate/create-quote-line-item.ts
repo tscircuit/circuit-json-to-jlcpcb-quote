@@ -31,6 +31,7 @@ export const createAdditionalFee = (fee: {
   key: string
   label: string
   cost: number
+  highCost?: number
   confidence: QuoteLineItem["confidence"]
   reason: string
   howToAvoid: string
@@ -40,6 +41,7 @@ export const createAdditionalFee = (fee: {
     key: fee.key,
     label: fee.label,
     cost: fee.cost,
+    highCost: fee.highCost,
     confidence: fee.confidence,
   }),
   category: "additional_fee",

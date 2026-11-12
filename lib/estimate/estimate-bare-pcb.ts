@@ -14,8 +14,9 @@ interface BarePcbOrder {
   confirmProductionFile: boolean
 }
 
-const getOrderedAreaM2 = (order: BarePcbOrder) =>
-  (order.features.widthMm * order.features.heightMm * order.quantity) / 1e6
+export const getOrderedAreaM2 = (
+  order: Pick<BarePcbOrder, "features" | "quantity">,
+) => (order.features.widthMm * order.features.heightMm * order.quantity) / 1e6
 
 const estimateFlexBoard = (order: BarePcbOrder): QuoteLineItem[] => {
   const { flex } = fabricationPrices

@@ -5,7 +5,7 @@ import {
 } from "./fabrication-files/find-fabrication-files"
 import { getBomLinesFromCsv } from "./fabrication-files/get-bom-lines-from-csv"
 import { getSidesWithComponents } from "./fabrication-files/get-sides-with-components"
-import { getSmallestVia } from "./fabrication-files/get-smallest-via"
+import { getViaSizes } from "./fabrication-files/get-via-sizes"
 import { isOnDrillHit } from "./fabrication-files/is-on-drill-hit"
 import {
   type DrillHit,
@@ -81,18 +81,18 @@ export const getQuoteInputsFromFabricationFiles = (
   const viaHits = platedHits.filter(
     (hit) => hit.diameterMm <= fabricationFileRules.maxViaHoleMm,
   )
-
   const bomCsv = findFabricationFile(files, fabricationFilePatterns.bom)
   const bom = bomCsv === undefined ? [] : getBomLinesFromCsv(bomCsv)
   const pickAndPlaceCsv = findFabricationFile(
     files,
     fabricationFilePatterns.pickAndPlace,
-  )
-  if (bom.length > 0 && pickAndPlaceCsv === undefined) {
+  )?.trim()
+  if (bom.length > 0 && !pickAndPlaceCsv) {
     throw new Error("The bundle has a BOM but no pick-and-place CSV")
   }
-  const sidesWithComponents =
-    pickAndPlaceCsv === undefined ? [] : getSidesWithComponents(pickAndPlaceCsv)
+  const sidesWithComponents = pickAndPlaceCsv
+    ? getSidesWithComponents(pickAndPlaceCsv)
+    : []
 
   const topPasteOpenings = countPasteOpenings(
     files,
@@ -119,6 +119,10 @@ export const getQuoteInputsFromFabricationFiles = (
     files,
     fabricationFilePatterns.stiffener,
   ).length
+  const viaSizes = getViaSizes({
+    viaHits,
+    topCopper: summarizeGerber(topCopperFile.content),
+  })
 
   return {
     features: {
@@ -132,10 +136,8 @@ export const getQuoteInputsFromFabricationFiles = (
       material: stiffenerCount > 0 ? "flex" : "fr4",
       stiffenerCount,
       viaCount: viaHits.length,
-      smallestVia: getSmallestVia({
-        viaHits,
-        topCopper: summarizeGerber(topCopperFile.content),
-      }),
+      smallestVia: viaSizes[0] ?? null,
+      viaSizes,
       holeCount: platedHits.length + nonPlatedHits.length,
       minTraceWidthMm:
         traceWidthsMm.length > 0 ? Math.min(...traceWidthsMm) : null,
