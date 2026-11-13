@@ -110,5 +110,7 @@ test("the quote states which destination its taxes are for", () => {
     bom: [],
     options: { assembly: "none", salesTaxRate: 0.0725 },
   })
-  expect(otherAddress.destination.note).toMatchInlineSnapshot(`"Shipping and taxes assume delivery to the United States with duties paid: 35% import duties and 7.25% sales tax. Other destinations are not modelled."`)
+  expect(otherAddress.destination.note).toMatchInlineSnapshot(
+    `"Shipping and taxes assume delivery to the United States with duties paid: 35% import duties and 7.25% sales tax. Other destinations are not modelled."`,
+  )
 })
