@@ -3,7 +3,11 @@ import {
   estimateOrderWeightKg,
   estimateShippingOptions,
 } from "lib/estimate/estimate-shipping-options"
-import type { ShippingCarrier } from "lib/index"
+import {
+  estimateJlcpcbQuote,
+  formatJlcpcbQuote,
+  type ShippingCarrier,
+} from "lib/index"
 import { createBoardFeatures } from "./fixtures/create-test-order"
 
 /**
@@ -82,4 +86,29 @@ test("order weight matches JLCPCB's quote page for the fitted board", () => {
   expect(estimateOrderWeightKg({ ...order, assembledQuantity: 0 })).toBe(0.33)
   expect(estimateOrderWeightKg({ ...order, assembledQuantity: 2 })).toBe(0.967)
   expect(estimateOrderWeightKg({ ...order, assembledQuantity: 5 })).toBe(1.228)
+})
+
+test("the quote states which destination its taxes are for", () => {
+  const quote = estimateJlcpcbQuote({
+    features: createBoardFeatures(),
+    bom: [],
+    options: { assembly: "none" },
+  })
+  expect(quote.destination).toMatchInlineSnapshot(`
+    {
+      "country": "US",
+      "importTaxRate": 0.35,
+      "isDefaultSalesTaxRate": true,
+      "note": "Shipping and taxes assume delivery to the United States with duties paid: 35% import duties and 8.625% sales tax (the rate on tscircuit's orders; it depends on the delivery address). Other destinations are not modelled.",
+      "salesTaxRate": 0.08625,
+    }
+  `)
+  expect(formatJlcpcbQuote(quote)).toContain(quote.destination.note)
+
+  const otherAddress = estimateJlcpcbQuote({
+    features: createBoardFeatures(),
+    bom: [],
+    options: { assembly: "none", salesTaxRate: 0.0725 },
+  })
+  expect(otherAddress.destination.note).toMatchInlineSnapshot(`"Shipping and taxes assume delivery to the United States with duties paid: 35% import duties and 7.25% sales tax. Other destinations are not modelled."`)
 })

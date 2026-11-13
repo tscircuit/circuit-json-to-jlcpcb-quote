@@ -164,6 +164,7 @@ const renderSummary = (quote: JlcpcbQuote) => `
       <tbody>${quote.summary.rows.map(renderSummaryRow).join("")}</tbody>
       <tfoot>${renderSummaryRow(quote.summary.grandTotal)}</tfoot>
     </table>
+    <p class="muted footnote">${escapeHtml(quote.destination.note)}</p>
     <p class="muted footnote">Per assembled board includes everything in the order, bare extra PCBs too. Grey ranges show how far an estimate may be off.</p>
   </section>`
 

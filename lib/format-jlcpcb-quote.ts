@@ -108,6 +108,8 @@ const formatSummary = (quote: JlcpcbQuote): string[] => [
   `  ${"-".repeat(LABEL_WIDTH + AMOUNT_WIDTH + 29)}`,
   formatSummaryRow(quote.summary.grandTotal),
   `  ${`(range ${formatUsd(quote.summary.grandTotal.lowTotal)} to ${formatUsd(quote.summary.grandTotal.highTotal)})`.padStart(LABEL_WIDTH + AMOUNT_WIDTH + 1)}`,
+  "",
+  `  ${quote.destination.note}`,
 ]
 
 /** Plain-text rendering of a quote for terminals and logs. */

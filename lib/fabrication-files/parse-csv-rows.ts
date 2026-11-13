@@ -7,9 +7,12 @@ type CsvColumnName = string
 export type CsvRow = Partial<Record<CsvColumnName, string>>
 
 export const parseCsvRows = (csvText: string): CsvRow[] => {
+  // JLCPCB's BOM and pick-and-place files are comma-separated. Saying so
+  // keeps a one-column file from failing delimiter detection.
   const parsed = Papa.parse<CsvRow>(csvText.trim(), {
     header: true,
     skipEmptyLines: true,
+    delimiter: ",",
   })
   const fatalError = parsed.errors.find(
     (error) => error.type !== "FieldMismatch",
