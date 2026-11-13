@@ -76,6 +76,12 @@ the US with duties paid, for DHL and UPS side by side, and `grandTotal` uses
 The import and sales tax rules reproduce three real checkouts to within two
 cents.
 
+Only delivery to the United States is modelled. The 35% import duty applies
+to US deliveries, and the default sales tax rate is the one on tscircuit's own
+orders, so the grand total is right for that address only; pass
+`salesTaxRate` for another US address. `quote.destination.note` states these
+assumptions, and the text output and quote page show it under the grand total.
+
 From the command line:
 
 ```sh

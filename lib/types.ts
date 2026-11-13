@@ -295,6 +295,21 @@ export interface JlcpcbQuote {
   lowTotal: number
   highTotal: number
 
+  /**
+   * Where shipping and taxes are priced for. Only delivery to the United
+   * States with duties paid is modelled, and the sales tax rate belongs to
+   * one address, so the grand total is right for that destination only.
+   */
+  destination: {
+    country: "US"
+    importTaxRate: number
+    salesTaxRate: number
+    /** Whether `salesTaxRate` is the default (tscircuit's own orders) */
+    isDefaultSalesTaxRate: boolean
+    /** One sentence stating these assumptions, for display */
+    note: string
+  }
+
   /** Shipping and taxes for each carrier, side by side */
   shippingOptions: ShippingOption[]
   /** Merchandise total plus shipping and taxes for `order.carrier` */

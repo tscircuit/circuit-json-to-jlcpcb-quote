@@ -6,6 +6,7 @@ import {
 } from "./estimate/estimate-assembly-option"
 import { buildQuoteSummary } from "./estimate/build-quote-summary"
 import { estimateBarePcb } from "./estimate/estimate-bare-pcb"
+import { formatPercent } from "./estimate/format-percent"
 import { estimateShippingOptions } from "./estimate/estimate-shipping-options"
 import { getOrderQuantities } from "./estimate/get-order-quantities"
 import {
@@ -95,6 +96,9 @@ export const estimateJlcpcbQuote = (order: {
     highTotal: sumLineItems(lineItems, "highCost"),
   }
   const carrier = options.carrier ?? orderDefaults.carrier
+  const salesTaxRate =
+    options.salesTaxRate ?? landedCostPrices.defaultSalesTaxRate
+  const isDefaultSalesTaxRate = options.salesTaxRate === undefined
   const shippingOptions = estimateShippingOptions({
     features,
     quantity,
@@ -103,7 +107,7 @@ export const estimateJlcpcbQuote = (order: {
     selectedCarrier: carrier,
     shippingCost: options.shippingCost,
     shippingWeightKg: options.shippingWeightKg,
-    salesTaxRate: options.salesTaxRate ?? landedCostPrices.defaultSalesTaxRate,
+    salesTaxRate,
   })
   const selectedShipping = shippingOptions.find(
     (option) => option.carrier === carrier,
@@ -114,6 +118,13 @@ export const estimateJlcpcbQuote = (order: {
     priceTableVersion: JLCPCB_PRICE_TABLE_VERSION,
     order: { quantity, assembledQuantity, assembly, surfaceFinish, carrier },
     features,
+    destination: {
+      country: "US",
+      importTaxRate: landedCostPrices.importTaxRate,
+      salesTaxRate,
+      isDefaultSalesTaxRate,
+      note: `Shipping and taxes assume delivery to the United States with duties paid: ${formatPercent(landedCostPrices.importTaxRate)} import duties and ${formatPercent(salesTaxRate)} sales tax${isDefaultSalesTaxRate ? " (the rate on tscircuit's orders; it depends on the delivery address)" : ""}. Other destinations are not modelled.`,
+    },
     summary: buildQuoteSummary({
       quantity,
       assembledQuantity,

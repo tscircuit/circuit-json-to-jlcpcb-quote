@@ -7,11 +7,9 @@ import type {
 } from "../types"
 import { createQuoteLineItem, roundToCents } from "./create-quote-line-item"
 import { sumLineItems } from "./estimate-assembly-option"
+import { formatPercent } from "./format-percent"
 
 const CARRIERS: ShippingCarrier[] = ["dhl", "ups"]
-
-/** 0.08625 -> "8.625%", 0.35 -> "35%" */
-const formatPercent = (rate: number) => `${Number((rate * 100).toFixed(3))}%`
 
 interface ShippedOrder {
   features: BoardFeatures

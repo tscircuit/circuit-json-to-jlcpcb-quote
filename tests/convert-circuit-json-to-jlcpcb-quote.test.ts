@@ -392,6 +392,13 @@ test("the quote for a board, as returned to callers such as the CLI", async () =
         },
       ],
       "currency": "USD",
+      "destination": {
+        "country": "US",
+        "importTaxRate": 0.35,
+        "isDefaultSalesTaxRate": true,
+        "note": "Shipping and taxes assume delivery to the United States with duties paid: 35% import duties and 8.625% sales tax (the rate on tscircuit's orders; it depends on the delivery address). Other destinations are not modelled.",
+        "salesTaxRate": 0.08625,
+      },
       "excludedBomLines": [
         {
           "line": {
