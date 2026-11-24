@@ -29,7 +29,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",
     "@types/bun": "latest",
-    "circuit-json": "^0.0.548",
+    "circuit-json": "^0.0.561",
     "fflate": "^0.8.3"
   },
   "peerDependencies": {

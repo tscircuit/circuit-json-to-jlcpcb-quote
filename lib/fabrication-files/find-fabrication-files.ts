@@ -3,9 +3,9 @@ import type { FabricationFileName, FabricationFiles } from "../types"
 export const fabricationFilePatterns = {
   boardOutline: /edge[_.]?cuts|\.gko$|\.gm1$|outline/i,
   copper: /_Cu\.gbr$|\.gtl$|\.gbl$|\.g\d+$/i,
-  topCopper: /^F_Cu|\.gtl$/i,
-  topPaste: /^F_Paste|\.gtp$/i,
-  bottomPaste: /^B_Paste|\.gbp$/i,
+  topCopper: /(^|[^a-zA-Z])F_Cu|\.gtl$/i,
+  topPaste: /(^|[^a-zA-Z])F_Paste|\.gtp$/i,
+  bottomPaste: /(^|[^a-zA-Z])B_Paste|\.gbp$/i,
   stiffener: /stiffener/i,
   drill: /\.(drl|xln)$/i,
   nonPlatedDrillName: /npth|nonplated/i,

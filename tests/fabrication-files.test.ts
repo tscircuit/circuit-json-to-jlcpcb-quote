@@ -37,3 +37,14 @@ test("bottom paste away from any pin is reported", () => {
     "1 paste openings on the bottom are not on a through-hole pin and no parts are placed there; not counted as joints",
   ])
 })
+
+test("KiCad-style project-prefixed gerber names are recognised", () => {
+  const files = createFiles("X5000000Y5000000D03*")
+  const prefixedFiles = Object.fromEntries(
+    Object.entries(files).map(([name, content]) => [`rp2040-${name}`, content]),
+  )
+  const inputs = getQuoteInputsFromFabricationFiles(prefixedFiles)
+  expect(inputs.warnings).toEqual([])
+  expect(inputs.features.numLayers).toBe(1)
+  expect(inputs.features.smtJointsPerBoard).toBe(1)
+})
